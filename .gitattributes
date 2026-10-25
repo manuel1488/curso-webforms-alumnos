@@ -1,0 +1,9 @@
+# Normalizar finales de línea en archivos de texto
+* text=auto
+
+# Documentos de Office: binarios (sin conversión de EOL ni diff de texto)
+*.pptx binary
+*.potx binary
+*.docx binary
+*.xlsx binary
+*.pdf  binary

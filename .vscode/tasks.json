@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Abrir en PowerPoint",
+      "detail": "Abre el archivo activo (.pptx) con la aplicación predeterminada de Windows",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "Invoke-Item -LiteralPath $env:TARGET_FILE"
+      ],
+      "options": {
+        "env": {
+          "TARGET_FILE": "${file}"
+        }
+      },
+      "presentation": {
+        "reveal": "never",
+        "close": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}
