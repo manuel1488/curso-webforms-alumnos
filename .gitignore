@@ -1,0 +1,17 @@
+# Visual Studio / .NET Framework
+.vs/
+bin/
+obj/
+packages/
+*.user
+*.suo
+*.cache
+*.log
+[Dd]ebug/
+[Rr]elease/
+PublishProfiles/*.pubxml.user
+# Publicación local
+publish/
+# Excel generados en pruebas
+*.xlsx
+!plantillas/*.xlsx
