@@ -41,3 +41,35 @@ Antes de preguntar, abre **F12 → Network** y revisa la respuesta del servidor:
 
 ## En IIS: no conecta a SQL Server
 El sitio corre con la identidad del Application Pool, no con tu usuario. En SSMS crea el inicio de sesión `IIS APPPOOL\NombreDelPool` y dale permisos sobre la base de datos.
+
+## Git: `git` no se reconoce como comando
+- Instala Git para Windows (guía de instalación, sección 6.0).
+- Cierra y vuelve a abrir la terminal después de instalar.
+
+## Git: `Author identity unknown` al hacer commit
+Falta configurar tu nombre y correo: `git config --global user.name "..."` y `git config --global user.email "..."`. Revisa lo que tienes con `git config --global -l`.
+
+## Git: `src refspec main does not match any` al hacer push
+Todavía no tienes ningún commit, o tu rama se llama `master`. Revisa con `git branch`. Si es `master`: `git branch -M main` y vuelve a hacer push.
+
+## Git: `rejected` o `fetch first` al hacer push
+El repositorio de GitHub tiene commits que tú no tienes. Tráelos y vuelve a subir:
+
+```powershell
+git pull origin main
+git push
+```
+
+Si el `pull` responde `refusing to merge unrelated histories`, creaste el repo en GitHub con README o `.gitignore`. Lo más sencillo: bórralo, créalo otra vez **vacío** y repite el `git push -u origin main`.
+
+## Git: `bin/`, `obj/` o `.vs/` aparecen en `git status`
+Te faltó el `.gitignore` o lo copiaste después del primer `git add`. Cópialo de `plantillas/VisualStudio.gitignore` del repo del curso como `.gitignore` en tu proyecto. Si esos archivos ya habían entrado a un commit, sácalos del control de versiones (no se borran de tu disco) y vuelve a guardar:
+
+```powershell
+git rm -r --cached .
+git add .
+git commit -m "Aplicar .gitignore"
+```
+
+## Git: `pull` marca conflicto en el repo del curso
+Modificaste archivos dentro del repo del curso. Deshaz tus cambios con `git restore .` y vuelve a hacer `git pull origin main`. Tu código va en tu proyecto, no ahí.

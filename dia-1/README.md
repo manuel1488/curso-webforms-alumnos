@@ -12,11 +12,13 @@
 - Primera página `.aspx`.
 - Master Page y `ContentPlaceHolder`.
 - HTML, CSS y Bootstrap: grid, navbar, formularios, tablas, botones.
+- Git básico: configuración, `init`, `.gitignore`, `add`, `commit`, `push`, `clone`, `fetch` y `pull`.
 
 ## Ejercicios
 1. Crea el proyecto y ejecuta una página que muestre la fecha del servidor.
 2. Crea `Site.Master` con un menú: Inicio, Clientes, Familias, Piezas.
 3. Maqueta `Clientes.aspx`: formulario de captura y tabla de ejemplo, sin datos reales.
+4. Configura Git, inicializa el repositorio de tu proyecto, haz tu primer commit y súbelo a tu GitHub.
 
 ## Resultado esperado
 La aplicación abre en el navegador, el menú navega entre páginas y la pantalla de Clientes está maquetada con Bootstrap.
@@ -24,3 +26,4 @@ La aplicación abre en el navegador, el menú navega entre páginas y la pantall
 ## Material
 - [Apuntes: de WinForms a la web, F12 y tecnologías del curso](apuntes.md)
 - [Presentación con el video *El viaje de una petición*](material/)
+- [Git básico para el curso](../docs/git-minimo.md)

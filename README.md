@@ -4,9 +4,9 @@ Repositorio del curso. Aquí encontrarás la guía de cada día, los scripts de 
 
 ## Cómo usar este repositorio
 
-1. Antes del primer día, sigue la [guía de instalación](docs/instalacion.md).
+1. Antes del primer día, sigue la [guía de instalación](docs/instalacion.md). Incluye cómo clonar este repositorio desde Visual Studio.
 2. Cada día tiene su carpeta (`dia-1` … `dia-6`) con objetivos, ejercicios y el resultado esperado.
-3. Al cierre de cada sesión se publica `dia-N/final/`, la aplicación como debe quedar ese día.
+3. Al cierre de cada sesión se publica `dia-N/final/`, la aplicación como debe quedar ese día. Descárgala en Visual Studio con *Git → Extraer* (ver [Git básico](docs/git-minimo.md)).
 4. Si te atrasas, abre la solución `final/` del día anterior y continúa desde ahí.
 5. Si algo falla, revisa primero [troubleshooting](docs/troubleshooting.md).
 6. Las tablas se crean a mano en clase. En [`sql/`](sql/README.md) están los scripts completos para comparar o ponerte al corriente.
@@ -15,7 +15,7 @@ Repositorio del curso. Aquí encontrarás la guía de cada día, los scripts de 
 
 | Día | Tema | Qué se ve | Al terminar el día |
 |---|---|---|---|
-| [1](dia-1/README.md) | Fundamentos e interfaz | De WinForms a la web, herramientas del navegador (F12), proyecto Web Forms, Master Page, HTML, CSS y Bootstrap | La aplicación abre con menú y la pantalla de Clientes maquetada |
+| [1](dia-1/README.md) | Fundamentos e interfaz | De WinForms a la web, herramientas del navegador (F12), proyecto Web Forms, Master Page, HTML, CSS, Bootstrap y Git básico | La aplicación abre con menú y la pantalla de Clientes maquetada |
 | [2](dia-2/README.md) | Clientes de punta a punta | JavaScript y jQuery, tabla Clientes en SQL Server, capas de Datos y Negocio, HTTP Handler, AJAX y JSON, Bootstrap Table | Alta y listado de clientes sin recargar la página |
 | [3](dia-3/README.md) | CRUD completo y Familias | Editar y eliminar, modales, tabla Familias con relación a Clientes, validaciones y manejo de errores | CRUD de Clientes y de Familias |
 | [4](dia-4/README.md) | Piezas | Diseño de la solución, tabla Piezas, combos dependientes Cliente → Familia, buenas prácticas | Catálogo de Piezas completo |

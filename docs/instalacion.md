@@ -147,8 +147,47 @@ En Visual Studio abre *Herramientas → Administrador de paquetes NuGet → Admi
 
 Si no aparecen resultados, tu red bloquea `nuget.org`: avisa al instructor o a tu área de redes antes del curso.
 
-## 6. Envía tu verificación
+## 6. Acceso al repositorio del curso
+
+Todo el material del curso (guías, scripts y la solución de cada día) está en un repositorio privado de GitHub. En el curso veremos lo básico de Git; aquí solo lo instalas y descargas el repositorio.
+
+### 6.0 Git para Windows
+
+1. Descárgalo de `https://git-scm.com/download/win` e instálalo con las opciones por defecto.
+2. Abre una terminal nueva (PowerShell) y verifica:
+
+```powershell
+git --version
+```
+
+Debe responder con un número de versión.
+
+### 6.1 Cuenta de GitHub
+
+1. Si no tienes cuenta, créala gratis en `https://github.com/signup`.
+2. Envía tu **nombre de usuario de GitHub** al instructor.
+3. Te llegará una invitación por correo. **Acéptala**; sin eso no podrás ver el repositorio.
+
+### 6.2 Clonar el repositorio desde Visual Studio
+
+1. Abre Visual Studio y en la ventana de inicio elige **Clonar un repositorio**.
+2. En *Ubicación del repositorio* escribe `https://github.com/manuel1488/curso-webforms-alumnos`.
+3. En *Ruta de acceso* elige tu carpeta de trabajo, por ejemplo `C:\cursos\curso-webforms-alumnos`.
+4. Clic en **Clonar**. Si te pide iniciar sesión en GitHub, hazlo con tu cuenta.
+
+> Si prefieres la terminal: `git clone https://github.com/manuel1488/curso-webforms-alumnos.git` dentro de `C:\cursos`.
+
+### 6.3 Traer lo nuevo cada día
+
+Al cierre de cada sesión se publica la solución del día. Para descargarla, en Visual Studio: *Git → Extraer* (*Git → Pull* si lo tienes en inglés). El resto lo vemos en clase el día 1; la referencia está en [Git básico](git-minimo.md).
+
+> **Sin Git:** también puedes entrar al repositorio en el navegador y usar *Code → Download ZIP*. Tendrás que volver a descargarlo cada día.
+
+## 7. Envía tu verificación
 
 Manda al instructor:
+- Tu nombre de usuario de GitHub (si no lo enviaste ya).
 - Una captura de *Configuración → Sistema → Información* (Windows y RAM).
 - Una captura con Visual Studio, SSMS y el administrador de IIS abiertos.
+- Una captura de la carpeta del repositorio clonado.
+- Una captura de la terminal con `git --version`.
