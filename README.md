@@ -22,21 +22,44 @@ Repositorio del curso. Aquí encontrarás la guía de cada día, los scripts de 
 | [5](dia-5/README.md) | Consolidación y exportación | Repaso del flujo completo, generación de Excel, descarga desde un handler, exportación filtrada | Exportación a Excel y requerimiento del ejercicio integrador |
 | [6](dia-6/README.md) | Integrador y publicación | Ejercicio integrador, publicación desde Visual Studio, IIS y Application Pool, desarrollo vs. producción | La aplicación completa corriendo en IIS |
 
-## Proyecto del curso
+## La aplicación que vamos a construir
 
-Una aplicación con tres catálogos relacionados:
+### El problema
+En una planta, cada cliente tiene sus propias piezas, y esas piezas se agrupan en familias (por ejemplo, *cerraduras* o *manijas*). Esa información suele vivir en hojas de Excel repartidas entre varias personas, sin una fuente única ni validaciones.
+
+### Qué hace la aplicación
+Es el **catálogo maestro de piezas por cliente**: un solo lugar, accesible desde el navegador, donde se registra qué piezas existen, a qué familia pertenecen y de qué cliente son. Es la base sobre la que después se puede registrar la producción y la trazabilidad; eso es justo lo que harás en el ejercicio integrador.
 
 ```
 Clientes → Familias → Piezas
 ```
 
-El modelo completo de la base de datos está en el [diagrama entidad-relación](sql/README.md#diagrama-entidad-relación).
+| Pantalla | Qué permite |
+|---|---|
+| **Clientes** | Alta, consulta, edición y baja de clientes |
+| **Familias** | Lo mismo, eligiendo a qué cliente pertenece cada familia |
+| **Piezas** | Lo mismo, eligiendo cliente y luego familia (combos dependientes); el número de parte no se puede repetir |
+| **Exportación** | Descargar a Excel las piezas filtradas por cliente y familia |
 
-Flujo de cada funcionalidad:
+Las bajas son lógicas: el registro no se borra, queda marcado como inactivo.
+
+### Un recorrido de uso
+1. Doy de alta el cliente *Autopartes del Bajío*.
+2. Le creo la familia *Cerraduras*.
+3. Agrego la pieza `CER-1001`, *Cerradura delantera izquierda*, eligiendo el cliente y la familia.
+4. Consulto las piezas de ese cliente y las exporto a Excel.
+
+### Cómo funciona por dentro
+Cada acción de una pantalla sigue el mismo camino:
 
 ```
 Página (HTML/Bootstrap) → jQuery → AJAX → Handler (.ashx) → Negocio → Datos → SQL Server
 ```
+
+El modelo completo de la base de datos está en el [diagrama entidad-relación](sql/README.md#diagrama-entidad-relación).
+
+### Fuera de alcance
+Autenticación de usuarios y permisos. Una aplicación real los necesita, pero no forman parte de este curso.
 
 ## Horario
 
