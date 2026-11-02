@@ -30,6 +30,8 @@ Una aplicación con tres catálogos relacionados:
 Clientes → Familias → Piezas
 ```
 
+El modelo completo de la base de datos está en el [diagrama entidad-relación](sql/README.md#diagrama-entidad-relación).
+
 Flujo de cada funcionalidad:
 
 ```
