@@ -11,6 +11,17 @@ Repositorio del curso. Aquí encontrarás la guía de cada día, los scripts de 
 5. Si algo falla, revisa primero [troubleshooting](docs/troubleshooting.md).
 6. Las tablas se crean a mano en clase. En [`sql/`](sql/README.md) están los scripts completos para comparar o ponerte al corriente.
 
+## Contenido por día
+
+| Día | Tema | Qué se ve | Al terminar el día |
+|---|---|---|---|
+| [1](dia-1/README.md) | Fundamentos e interfaz | De WinForms a la web, herramientas del navegador (F12), proyecto Web Forms, Master Page, HTML, CSS y Bootstrap | La aplicación abre con menú y la pantalla de Clientes maquetada |
+| [2](dia-2/README.md) | Clientes de punta a punta | JavaScript y jQuery, tabla Clientes en SQL Server, capas de Datos y Negocio, HTTP Handler, AJAX y JSON, Bootstrap Table | Alta y listado de clientes sin recargar la página |
+| [3](dia-3/README.md) | CRUD completo y Familias | Editar y eliminar, modales, tabla Familias con relación a Clientes, validaciones y manejo de errores | CRUD de Clientes y de Familias |
+| [4](dia-4/README.md) | Piezas | Diseño de la solución, tabla Piezas, combos dependientes Cliente → Familia, buenas prácticas | Catálogo de Piezas completo |
+| [5](dia-5/README.md) | Consolidación y exportación | Repaso del flujo completo, generación de Excel, descarga desde un handler, exportación filtrada | Exportación a Excel y requerimiento del ejercicio integrador |
+| [6](dia-6/README.md) | Integrador y publicación | Ejercicio integrador, publicación desde Visual Studio, IIS y Application Pool, desarrollo vs. producción | La aplicación completa corriendo en IIS |
+
 ## Proyecto del curso
 
 Una aplicación con tres catálogos relacionados:
