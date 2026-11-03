@@ -27,4 +27,4 @@ La aplicación abre en el navegador, el menú navega entre páginas y la pantall
 - [Apuntes: de WinForms a la web, F12 y tecnologías del curso](apuntes.md)
 - [Presentación con el video *El viaje de una petición*](material/)
 - [Git básico para el curso](../docs/git-minimo.md)
-- [Ejemplo: el contador en WinForms](ejemplos/)
+- [Demo: el contador en WinForms y en Web Forms](ejemplos/)

@@ -1,17 +1,32 @@
-# Ejemplos · Día 1
+# Demo · El contador en WinForms y en Web Forms
 
-## El contador: WinForms vs. Web Forms
+El mismo código en los dos mundos, para comprobar que **el servidor web no recuerda nada entre peticiones**. La explicación está en [`../apuntes.md`](../apuntes.md#sin-estado-el-contador).
 
-El mismo código en los dos mundos, para ver en vivo que **el servidor web no recuerda nada entre peticiones**. La explicación está en [`../apuntes.md`](../apuntes.md#sin-estado-el-contador).
+Los proyectos se crean en clase; aquí están los archivos completos para reemplazar los que genera Visual Studio.
 
-### WinForms (`ContadorWinForms/`)
+## 1. WinForms · [`winforms/`](winforms/)
 
-1. Abre `ContadorWinForms/ContadorWinForms.csproj` en Visual Studio.
-2. Ejecuta con **F5**.
-3. Da tres clics en **Sumar**: verás **1, 2, 3**. El formulario sigue vivo en memoria y la variable `contador` conserva su valor.
+| Archivo | Contenido |
+|---|---|
+| [`Form1.cs`](winforms/Form1.cs) | La clase del formulario con el contador |
+| [`Form1.Designer.cs`](winforms/Form1.Designer.cs) | El `Label` y el `Button` ya acomodados |
 
-### Web Forms
+1. Nuevo proyecto: **Aplicación de Windows Forms (.NET Framework)**, en C#, con el nombre `ContadorWinForms`.
+2. Reemplaza el contenido de `Form1.cs` y `Form1.Designer.cs` con los de esta carpeta.
+3. **F5** y tres clics: **1, 2, 3**. El formulario sigue vivo en memoria y la variable conserva su valor.
 
-La versión web la creamos juntos en el bloque 2, dentro del proyecto `CursoWeb` (página `Contador.aspx`). Con el mismo código, tres clics muestran **1, 1, 1**: cada clic es una petición nueva y ASP.NET crea la página desde cero.
+> Si tu proyecto tiene otro nombre, cambia `namespace ContadorWinForms` en los dos archivos por el nombre de tu proyecto.
 
-Al terminar el día queda en `../final/` para que la compares.
+## 2. Web Forms · [`webforms/`](webforms/)
+
+| Archivo | Contenido |
+|---|---|
+| [`Contador.aspx`](webforms/Contador.aspx) | La página con el `Label` y el `Button` |
+| [`Contador.aspx.cs`](webforms/Contador.aspx.cs) | El code-behind con el contador |
+| [`Contador.aspx.designer.cs`](webforms/Contador.aspx.designer.cs) | Las declaraciones de los controles (Visual Studio lo regenera solo) |
+
+1. En tu proyecto `CursoWeb`: clic derecho → *Agregar → Nuevo elemento → Formulario Web Forms*, con el nombre `Contador.aspx`.
+2. Reemplaza el contenido de los tres archivos con los de esta carpeta.
+3. Clic derecho en `Contador.aspx` → *Ver en el explorador* y tres clics: **1, 1, 1**. Cada clic es una petición nueva: ASP.NET crea la página desde cero, ejecuta el evento, genera el HTML y la destruye.
+
+> Abre **F12 → Network** mientras das clic: cada clic aparece como una petición `POST` a `Contador.aspx`.
