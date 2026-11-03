@@ -93,3 +93,19 @@ En el curso usaremos pocos controles `asp:`. La mayor parte será HTML normal co
 ### IIS Express
 
 La página corre en `http://localhost:<puerto>/Default.aspx`; el puerto lo asigna Visual Studio a cada proyecto. `Default.aspx` es el documento por defecto, así que `http://localhost:<puerto>/` también funciona.
+
+## 3. El contador: por qué siempre 1
+
+1. Agrega `Contador.aspx` a tu proyecto y reemplaza sus tres archivos con los de [`ejemplos/webforms/`](ejemplos/webforms/).
+2. Clic derecho en `Contador.aspx` → *Ver en el explorador*. Mejor en una **ventana de incógnito**: las extensiones del navegador agregan peticiones propias que confunden.
+3. F12 → **Network** y marca **Keep log** (*Conservar registro*) antes de dar clic. Si no, cada clic recarga la página y la lista se limpia.
+4. Tres clics en **Sumar**: el número se queda en **1**.
+5. Abre una de las peticiones `Contador.aspx`:
+   - *Headers*: el método es `POST`.
+   - *Payload*: viajan `__VIEWSTATE`, `__VIEWSTATEGENERATOR`, `__EVENTVALIDATION` y `btnSumar`. La variable `contador` no aparece: el servidor no la recibe ni la guardó.
+
+El video [`material/ciclo-de-vida-de-una-pagina.mp4`](material/ciclo-de-vida-de-una-pagina.mp4) lo explica en 25 segundos: en cada petición la página nace con `contador = 0`, pasa por Init, Load, el clic, Render y Unload, y se destruye. El siguiente clic empieza otra vez desde cero.
+
+> En WinForms el formulario vive mientras está abierto. En la web, la página vive lo que dura una petición.
+
+Cada clic de un `asp:Button` envía y recibe la página completa. A partir del día 2 usaremos AJAX y handlers para que solo viaje el dato que importa, y los datos vivirán en SQL Server.
