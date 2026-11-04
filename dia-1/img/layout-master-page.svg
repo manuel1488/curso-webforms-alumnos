@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" width="960" height="640" text-anchor="middle">
+  <title>Layout semántico de HTML: header, nav, main con section y article, aside y footer</title>
+  <style>
+    .tag { font-family: Consolas, 'Courier New', monospace; font-size: 30px; font-weight: 700; fill: #f5d042; }
+    .desc { font-family: 'Segoe UI', Arial, sans-serif; font-size: 16px; fill: #c9cdd3; }
+    .box { fill: #1f2029; }
+  </style>
+  <rect width="960" height="640" fill="#0b0d14"/>
+
+  <rect class="box" x="30" y="30" width="900" height="84" rx="14"/>
+  <text class="tag" x="480" y="72">&lt;header&gt;</text>
+  <text class="desc" x="480" y="98">Encabezado: título o logo de la aplicación</text>
+
+  <rect class="box" x="30" y="128" width="900" height="84" rx="14"/>
+  <text class="tag" x="480" y="170">&lt;nav&gt;</text>
+  <text class="desc" x="480" y="196">Menú: enlaces a las páginas</text>
+
+  <rect x="30" y="226" width="626" height="304" rx="16" fill="none" stroke="#6b7080" stroke-width="2" stroke-dasharray="10 7"/>
+  <rect x="48" y="214" width="250" height="26" fill="#0b0d14"/>
+  <text x="56" y="233" text-anchor="start" font-family="Consolas, 'Courier New', monospace" font-size="17" font-weight="700" fill="#f5d042">&lt;main&gt;<tspan font-family="'Segoe UI', Arial, sans-serif" font-weight="400" fill="#c9cdd3"> contenido principal</tspan></text>
+
+  <rect class="box" x="46" y="248" width="594" height="126" rx="14"/>
+  <text class="tag" x="343" y="306">&lt;section&gt;</text>
+  <text class="desc" x="343" y="334">Un bloque temático del contenido</text>
+
+  <rect class="box" x="46" y="388" width="594" height="126" rx="14"/>
+  <text class="tag" x="343" y="446">&lt;article&gt;</text>
+  <text class="desc" x="343" y="474">Contenido que se entiende por sí solo</text>
+
+  <rect class="box" x="670" y="226" width="260" height="304" rx="14"/>
+  <text class="tag" x="800" y="370">&lt;aside&gt;</text>
+  <text class="desc" x="800" y="398">Contenido complementario:</text>
+  <text class="desc" x="800" y="420">barra lateral, ayuda</text>
+
+  <rect class="box" x="30" y="544" width="900" height="70" rx="14"/>
+  <text class="tag" x="480" y="580">&lt;footer&gt;</text>
+  <text class="desc" x="480" y="604">Pie: derechos o información adicional</text>
+</svg>

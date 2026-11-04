@@ -109,3 +109,121 @@ El video [`material/ciclo-de-vida-de-una-pagina.mp4`](material/ciclo-de-vida-de-
 > En WinForms el formulario vive mientras está abierto. En la web, la página vive lo que dura una petición.
 
 Cada clic de un `asp:Button` envía y recibe la página completa. A partir del día 2 usaremos AJAX y handlers para que solo viaje el dato que importa, y los datos vivirán en SQL Server.
+
+## 4. Master Page y menú
+
+Si la aplicación tiene 20 páginas con el mismo encabezado y menú, agregar una opción al menú significaría cambiar 20 archivos. La **Master Page** guarda ese marco común en un solo lugar; cada página solo pone su contenido. Es parecido a un formulario base heredado en WinForms.
+
+### El layout
+
+![Layout de la Master Page: header, nav, main y footer](img/layout-master-page.svg)
+
+| Etiqueta | Para qué | ¿En la Master Page? |
+|---|---|---|
+| `<header>` | Encabezado: título o logo de la aplicación | Sí |
+| `<nav>` | El menú de navegación | Sí |
+| `<main>` | El contenido principal; lo único que cambia de página a página | Sí, con el `ContentPlaceHolder` adentro |
+| `<section>` | Un bloque temático del contenido | No: dentro de cada página, si hace falta |
+| `<article>` | Contenido que se entiende por sí solo | No: dentro de cada página, si hace falta |
+| `<aside>` | Contenido complementario, como una barra lateral | No: en este curso no la usamos |
+| `<footer>` | Pie de página | Sí |
+
+Se podría hacer todo con `<div>`, pero estas etiquetas dicen qué es cada parte. La Master Page usa `<header>`, `<nav>`, `<main>` y `<footer>` porque es lo que se repite en todas las páginas; `<section>`, `<article>` y `<aside>` van dentro de cada página cuando el contenido lo pide.
+
+### Crear `Site.Master`
+
+1. *Agregar → Nuevo elemento → Página maestra de Web Forms*, con el nombre `Site.Master`.
+2. Ponle un título en `<title>` y deja el `<body>` así:
+
+```aspx
+<body>
+    <form id="form1" runat="server">
+        <header>
+            <strong>Curso Web Forms</strong>
+        </header>
+
+        <nav>
+            <a href="Default.aspx">Inicio</a> |
+            <a href="Clientes.aspx">Clientes</a> |
+            <a href="Familias.aspx">Familias</a> |
+            <a href="Piezas.aspx">Piezas</a>
+        </nav>
+
+        <main>
+            <asp:ContentPlaceHolder ID="MainContent" runat="server">
+            </asp:ContentPlaceHolder>
+        </main>
+
+        <footer>
+            <small>Curso de ASP.NET Web Forms</small>
+        </footer>
+    </form>
+
+    <asp:ContentPlaceHolder ID="Scripts" runat="server">
+    </asp:ContentPlaceHolder>
+</body>
+```
+
+Los `ContentPlaceHolder` son los huecos que llena cada página:
+
+| Hueco | Para qué |
+|---|---|
+| `head` | Agregar algo al `<head>`, por ejemplo un CSS propio de la página |
+| `MainContent` | El contenido de la página |
+| `Scripts` | El JavaScript de la página, al final del `<body>` (desde el día 2) |
+
+### Convertir `Default.aspx`
+
+**Antes** (página completa, sección 2):
+
+```aspx
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="Default.aspx.cs" Inherits="CursoWeb.Default" %>
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title></title>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <div>
+            <h1>Hola desde el servidor</h1>
+            <p>Fecha y hora del servidor: <asp:Label ID="lblFecha" runat="server"></asp:Label></p>
+        </div>
+    </form>
+</body>
+</html>
+```
+
+**Después** (con Master Page):
+
+```aspx
+<%@ Page Title="Inicio" Language="C#" AutoEventWireup="true" CodeBehind="Default.aspx.cs" Inherits="CursoWeb.Default" MasterPageFile="~/Site.Master" %>
+
+<asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
+    <h1>Hola desde el servidor</h1>
+    <p>Fecha y hora del servidor: <asp:Label ID="lblFecha" runat="server"></asp:Label></p>
+</asp:Content>
+```
+
+| Qué cambió | Por qué |
+|---|---|
+| Se agregó `MasterPageFile="~/Site.Master"` | Indica qué marco usa la página |
+| Se agregó `Title="Inicio"` | El título de la pestaña para esta página |
+| Se quitaron `<!DOCTYPE>`, `<html>`, `<head>`, `<body>` y `<form>` | Ya los pone `Site.Master` |
+| El contenido quedó dentro de `<asp:Content ContentPlaceHolderID="MainContent">` | Indica en qué hueco va |
+| El code-behind no cambió | `lblFecha` sigue siendo el mismo control |
+
+> Si dejas el `<html>` o el `<form>` después de agregar `MasterPageFile`, la página no corre: con Master Page solo puede haber controles `<asp:Content>`.
+
+### Páginas de contenido
+
+1. *Agregar → Nuevo elemento → Formulario Web Forms con página maestra* y elige `Site.Master`.
+2. Crea `Clientes.aspx`, `Familias.aspx` y `Piezas.aspx`, cada una con un `<h1>` con su nombre dentro del `Content` de `MainContent` y su `Title` en la directiva.
+
+`Contador.aspx` se queda sin Master Page: es la demo de una página completa.
+
+### Probar
+
+1. F5 y navega con el menú: el encabezado, el menú y el pie no cambian; el título de la pestaña sí.
+2. En `Default.aspx`, Ctrl+U: el `span` de la fecha llegó como `MainContent_lblFecha`. ASP.NET le agrega el nombre del `ContentPlaceHolder`; lo tomaremos en cuenta al usar jQuery el día 2.
