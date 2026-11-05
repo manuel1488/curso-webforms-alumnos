@@ -225,5 +225,6 @@ Los `ContentPlaceHolder` son los huecos que llena cada página:
 
 ### Probar
 
-1. F5 y navega con el menú: el encabezado, el menú y el pie no cambian; el título de la pestaña sí.
-2. En `Default.aspx`, Ctrl+U: el `span` de la fecha llegó como `MainContent_lblFecha`. ASP.NET le agrega el nombre del `ContentPlaceHolder`; lo tomaremos en cuenta al usar jQuery el día 2.
+1. Clic derecho en `Default.aspx` → **Establecer como página de inicio**. Si no, F5 abre la página que tengas activa en el editor.
+2. F5 y navega con el menú: el encabezado, el menú y el pie no cambian; el título de la pestaña sí.
+3. En `Default.aspx`, Ctrl+U: el `span` de la fecha llegó como `MainContent_lblFecha`. ASP.NET le agrega el nombre del `ContentPlaceHolder`; lo tomaremos en cuenta al usar jQuery el día 2.
