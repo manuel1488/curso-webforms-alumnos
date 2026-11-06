@@ -292,6 +292,37 @@ Bootstrap es CSS ya hecho: en lugar de escribir reglas, pones clases en el HTML.
 
 > Si pones el `<script>` dentro del `ContentPlaceHolder` `Scripts`, Bootstrap JS deja de cargarse en las páginas que tienen su `<asp:Content>` de `Scripts`, aunque esté vacío.
 
+### Cómo se leen las clases
+
+![Cómo se leen las clases de Bootstrap](img/bootstrap-nomenclatura.svg)
+
+Hay dos tipos de clases:
+
+| Tipo | Qué hacen | Ejemplos |
+|---|---|---|
+| **Componentes** | Arman una pieza completa: una clase base más modificadores | `navbar navbar-expand`, `btn btn-primary btn-sm`, `table table-striped` |
+| **Utilidades** | Cambian una sola propiedad CSS | `bg-dark`, `py-3`, `text-muted`, `fw-bold` |
+
+Las utilidades se leen como **propiedad-lado-tamaño**:
+
+| Clase | Se lee | CSS que aplica |
+|---|---|---|
+| `py-3` | **p**adding, eje **y**, tamaño 3 | `padding-top` y `padding-bottom` |
+| `mt-2` | **m**argin **t**op, tamaño 2 | `margin-top` |
+| `px-0` | padding, eje x, tamaño 0 | sin padding a los lados |
+| `bg-dark` | **b**ack**g**round *dark* | color de fondo |
+| `fs-4` / `fw-bold` | **f**ont-**s**ize 4 / **f**ont-**w**eight bold | tamaño y peso de letra |
+
+- **Lados:** `t` arriba, `b` abajo, `s` inicio, `e` final, `x` horizontal, `y` vertical. **Tamaños:** de `0` a `5`.
+- **Colores del tema:** `primary`, `secondary`, `success`, `danger`, `warning`, `info`, `light`, `dark`, combinados con `bg-`, `text-`, `btn-` o `border-`.
+- **Tamaños de pantalla:** `sm`, `md`, `lg`, `xl`, `xxl` significan *a partir de este ancho*. `col-md-6` es media fila desde 768 px.
+
+**Cómo buscar una clase:**
+- En la [documentación de Bootstrap 5.3](https://getbootstrap.com/docs/5.3/), el menú lateral separa *Layout*, *Content*, *Forms*, *Components* y *Utilities*. Cada página trae ejemplos para copiar.
+- Con **F12 → Elements → Styles** ves qué CSS aplica cada clase del elemento que selecciones.
+
+No hace falta memorizarlas: basta con saber leerlas y dónde buscarlas.
+
 ### La navbar
 
 En `Site.Master`, reemplaza de `<header>` a `</footer>`:
@@ -335,4 +366,4 @@ Y **quita el `<link>` de `css/site.css`**: sus reglas le dan estilo a las mismas
 | `border-top`, `border-bottom` | Bordes |
 | `fs-4`, `fw-bold`, `small`, `text-muted` | Tamaño, peso y color del texto |
 
-No hace falta memorizar las clases: la [documentación de Bootstrap 5.3](https://getbootstrap.com/docs/5.3/) tiene ejemplos para copiar.
+Lee cada clase con la regla de arriba: es un componente con modificadores, o una utilidad *propiedad-lado-tamaño*.
