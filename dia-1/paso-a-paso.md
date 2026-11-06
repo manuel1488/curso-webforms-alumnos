@@ -1,6 +1,15 @@
 # Paso a paso · Día 1
 
-Lo que construimos juntos en clase. Si te atrasas o algo no te funciona, compáralo con la solución en `final/`.
+Lo que construimos juntos en clase. Si te atrasas o algo no te funciona, compáralo con la solución del bloque.
+
+| Bloque | Secciones | Solución para comparar |
+|---|---|---|
+| **Bloque 2** · Proyecto, primera página y Master Page | [1](#1-crear-el-proyecto) · [2](#2-primera-página) · [3](#3-el-contador-por-qué-siempre-1) · [4](#4-master-page-y-menú) | [`bloque-2/`](bloque-2/) |
+| **Bloque 3** · CSS, Bootstrap, Clientes y Git | [5](#5-css) · [6](#6-bootstrap) | `final/`, al cierre del día |
+
+---
+
+> **Bloque 2 · Proyecto, primera página y Master Page**
 
 ## 1. Crear el proyecto
 
@@ -228,3 +237,102 @@ Los `ContentPlaceHolder` son los huecos que llena cada página:
 1. Clic derecho en `Default.aspx` → **Establecer como página de inicio**. Si no, F5 abre la página que tengas activa en el editor.
 2. F5 y navega con el menú: el encabezado, el menú y el pie no cambian; el título de la pestaña sí.
 3. En `Default.aspx`, Ctrl+U: el `span` de la fecha llegó como `MainContent_lblFecha`. ASP.NET le agrega el nombre del `ContentPlaceHolder`; lo tomaremos en cuenta al usar jQuery el día 2.
+
+> Si te atrasaste, el proyecto como debe quedar hasta aquí está en [`bloque-2/`](bloque-2/).
+
+---
+
+> **Bloque 3 · CSS, Bootstrap, Clientes y Git**
+
+## 5. CSS
+
+El HTML dice qué es cada cosa; el CSS dice cómo se ve.
+
+1. Copia [`plantillas/css/site.css`](../plantillas/css/site.css) a una carpeta `css` en tu proyecto.
+2. En `Site.Master`, dentro de `<head>` y antes del `ContentPlaceHolder` `head`:
+   ```html
+   <link href="css/site.css" rel="stylesheet" />
+   ```
+3. F5: el encabezado, el menú y el pie ya tienen color.
+
+Cada regla tiene un **selector** (a qué elementos aplica) y pares **propiedad: valor**:
+
+```css
+nav a {
+    color: #1f5f99;
+    text-decoration: none;
+}
+```
+
+Para probar un cambio sin tocar el archivo: **F12 → Elements**, selecciona el elemento y modifícalo en el panel **Styles**.
+
+## 6. Bootstrap
+
+Bootstrap es CSS ya hecho: en lugar de escribir reglas, pones clases en el HTML. Usamos los archivos locales del repo, sin depender de internet.
+
+### Agregarlo al proyecto
+
+1. Copia la carpeta [`plantillas/lib`](../plantillas/lib/) a la raíz de tu proyecto.
+2. En el Explorador de soluciones, **Mostrar todos los archivos** → clic derecho en `css` y en `lib` → **Incluir en el proyecto**.
+3. En `Site.Master`:
+   - En `<head>`, **antes** de `site.css`:
+     ```html
+     <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+     ```
+   - Al final del `<body>`, **antes y fuera** del `ContentPlaceHolder` `Scripts`:
+     ```html
+     <script src="lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+     ```
+
+| Por qué así | |
+|---|---|
+| Bootstrap antes de `site.css` | Lo que va después gana; tus estilos pueden ajustar los de Bootstrap |
+| `<script>` al final del `<body>` | La página se dibuja primero y el JavaScript carga después |
+| `<script>` fuera del `ContentPlaceHolder` | Lo que va dentro de un `ContentPlaceHolder` se reemplaza cuando una página llena ese hueco |
+
+> Si pones el `<script>` dentro del `ContentPlaceHolder` `Scripts`, Bootstrap JS deja de cargarse en las páginas que tienen su `<asp:Content>` de `Scripts`, aunque esté vacío.
+
+### La navbar
+
+En `Site.Master`, reemplaza de `<header>` a `</footer>`:
+
+```aspx
+<header class="bg-dark text-white py-3">
+    <div class="container">
+        <span class="fs-4 fw-bold">Curso Web Forms</span>
+    </div>
+</header>
+
+<nav class="navbar navbar-expand bg-body-tertiary border-bottom">
+    <div class="container">
+        <div class="navbar-nav">
+            <a class="nav-link" href="Default.aspx">Inicio</a>
+            <a class="nav-link" href="Clientes.aspx">Clientes</a>
+            <a class="nav-link" href="Familias.aspx">Familias</a>
+            <a class="nav-link" href="Piezas.aspx">Piezas</a>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-4">
+    <asp:ContentPlaceHolder ID="MainContent" runat="server">
+    </asp:ContentPlaceHolder>
+</main>
+
+<footer class="border-top py-3">
+    <div class="container text-muted small">Curso de ASP.NET Web Forms</div>
+</footer>
+```
+
+Y **quita el `<link>` de `css/site.css`**: sus reglas le dan estilo a las mismas etiquetas y taparían las clases de Bootstrap.
+
+| Clase | Qué hace |
+|---|---|
+| `container` | Centra el contenido y le da un ancho máximo |
+| `bg-dark`, `text-white`, `bg-body-tertiary` | Colores de fondo y de texto |
+| `py-3`, `py-4` | Espacio arriba y abajo |
+| `navbar`, `navbar-expand`, `navbar-nav`, `nav-link` | La barra de navegación y sus enlaces |
+| `border-top`, `border-bottom` | Bordes |
+| `fs-4`, `fw-bold`, `small`, `text-muted` | Tamaño, peso y color del texto |
+
+No hace falta memorizar las clases: la [documentación de Bootstrap 5.3](https://getbootstrap.com/docs/5.3/) tiene ejemplos para copiar.
