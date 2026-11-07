@@ -13,6 +13,8 @@ Git guarda versiones de tu código; GitHub es donde viven los repositorios en la
 
 ## 1. Configuración (una sola vez por equipo)
 
+📖 [`git config`](https://git-scm.com/docs/git-config) · [Pro Git: configurando Git por primera vez](https://git-scm.com/book/es/v2/Inicio---Sobre-el-Control-de-Versiones-Configurando-Git-por-primera-vez)
+
 Git firma cada commit con tu nombre y correo:
 
 ```powershell
@@ -30,6 +32,8 @@ git config --global -l
 `-l` es la forma corta de `--list`. Si solo quieres ver un valor: `git config --global user.name`.
 
 ## 2. Tu proyecto en Git
+
+📖 [`git init`](https://git-scm.com/docs/git-init) · [`git status`](https://git-scm.com/docs/git-status) · [`git add`](https://git-scm.com/docs/git-add) · [`git commit`](https://git-scm.com/docs/git-commit)
 
 ```powershell
 cd C:\cursos\CursoWeb
@@ -50,11 +54,15 @@ git commit -m "Día 1: Master Page y Clientes maquetado"
 
 ### El `.gitignore`
 
+📖 [`gitignore`](https://git-scm.com/docs/gitignore) · [Plantillas de GitHub](https://github.com/github/gitignore)
+
 Le dice a Git qué **no** guardar: archivos que Visual Studio genera solo (`bin/`, `obj/`, `.vs/`, `packages/`) o que son preferencias de cada usuario. Así el repositorio solo lleva tu código. **Cópialo antes del primer `git add`**; si no, esos archivos entran al historial.
 
 El del curso está en `plantillas/VisualStudio.gitignore` y es una versión reducida de la [plantilla oficial de GitHub](https://github.com/github/gitignore/blob/main/VisualStudio.gitignore). Visual Studio también lo crea por ti si inicializas el repositorio con *Git → Crear repositorio Git*, eligiendo la plantilla *Default (VisualStudio)*.
 
 ## 3. Subirlo a GitHub (`push`)
+
+📖 [`git remote`](https://git-scm.com/docs/git-remote) · [`git push`](https://git-scm.com/docs/git-push)
 
 1. En GitHub crea un repositorio **vacío y privado**, por ejemplo `curso-webforms-practica`. No le agregues README ni `.gitignore`.
 2. Conecta tu repositorio local con el de GitHub y súbelo:
@@ -82,6 +90,8 @@ Por eso el `-u` se usa solo en el primer push.
 > En el curso trabajamos **directo en `main`** para mantenerlo simple. En un equipo de trabajo normalmente se usan ramas y *pull requests*.
 
 ## 4. El repositorio del curso (`clone`, `fetch`, `pull`)
+
+📖 [`git clone`](https://git-scm.com/docs/git-clone) · [`git fetch`](https://git-scm.com/docs/git-fetch) · [`git pull`](https://git-scm.com/docs/git-pull)
 
 Si todavía no lo tienes en tu equipo:
 
@@ -121,6 +131,8 @@ git pull origin main
 ```
 
 ## 6. Cuando algo sale mal
+
+📖 [`git diff`](https://git-scm.com/docs/git-diff) · [`git restore`](https://git-scm.com/docs/git-restore) · [`git log`](https://git-scm.com/docs/git-log)
 
 | Quiero… | Comando |
 |---|---|

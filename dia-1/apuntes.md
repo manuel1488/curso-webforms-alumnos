@@ -69,6 +69,8 @@ sequenceDiagram
 
 ### Sin estado: el contador
 
+📖 [ASP.NET Page Life Cycle Overview](https://learn.microsoft.com/previous-versions/aspnet/ms178472(v=vs.100))
+
 El mismo código, en los dos mundos:
 
 **WinForms**
@@ -113,6 +115,8 @@ Todo lo que llega al navegador el usuario lo puede ver y modificar con F12. Por 
 
 ## 3. Herramientas del navegador (F12)
 
+📖 [Chrome DevTools](https://developer.chrome.com/docs/devtools) · [Elements / CSS](https://developer.chrome.com/docs/devtools/css) · [Console](https://developer.chrome.com/docs/devtools/console) · [Network](https://developer.chrome.com/docs/devtools/network)
+
 | Pestaña | Para qué | Úsala cuando… |
 |---|---|---|
 | **Elements** | Ver y editar el HTML y CSS de la página | Algo no se ve como esperas |
@@ -125,6 +129,8 @@ En **Network**:
 - Filtro **Fetch/XHR**: ahí verás tus llamadas AJAX.
 
 ### Códigos de estado
+
+📖 [MDN: códigos de estado HTTP](https://developer.mozilla.org/es/docs/Web/HTTP/Reference/Status)
 
 | Código | Significa | Cuándo lo verás en el curso |
 |---|---|---|
@@ -174,6 +180,8 @@ flowchart LR
 > Página → jQuery → AJAX → Handler → Negocio → Datos → SQL Server, y de regreso como JSON.
 
 ### Así se ve un JSON
+
+📖 [json.org en español](https://www.json.org/json-es.html)
 
 ```json
 {

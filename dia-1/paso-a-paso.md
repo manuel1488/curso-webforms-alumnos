@@ -56,6 +56,8 @@ Si presionas **F5** ahora, el navegador muestra **HTTP Error 403.14 – Forbidde
 
 ### Anatomía de una página Web Forms
 
+📖 [ASP.NET Web Page Code Model](https://learn.microsoft.com/previous-versions/aspnet/015103yb(v=vs.100)) · [Web Forms Page Syntax Overview](https://learn.microsoft.com/en-us/previous-versions/k33801s3(v=vs.140)) · [Page Life Cycle Overview](https://learn.microsoft.com/previous-versions/aspnet/ms178472(v=vs.100))
+
 Cada página son tres archivos, con el mismo patrón que un formulario de WinForms:
 
 | Web Forms | WinForms | Qué es |
@@ -76,6 +78,8 @@ La primera línea del `.aspx` une el marcado con su clase:
 - **`Page_Load`** se ejecuta en **cada** petición. `IsPostBack` indica si la petición vino de un botón de la misma página.
 
 ### Los controles se convierten en HTML
+
+📖 [Web Server Controls Overview](https://learn.microsoft.com/previous-versions/aspnet/zsyt68f1(v=vs.100))
 
 Abre el código fuente con **Ctrl+U**:
 
@@ -105,6 +109,8 @@ La página corre en `http://localhost:<puerto>/Default.aspx`; el puerto lo asign
 
 ## 3. El contador: por qué siempre 1
 
+📖 [ASP.NET Page Life Cycle Overview](https://learn.microsoft.com/previous-versions/aspnet/ms178472(v=vs.100))
+
 1. Agrega `Contador.aspx` a tu proyecto y reemplaza sus tres archivos con los de [`ejemplos/webforms/`](ejemplos/webforms/).
 2. Clic derecho en `Contador.aspx` → *Ver en el explorador*. Mejor en una **ventana de incógnito**: las extensiones del navegador agregan peticiones propias que confunden.
 3. F12 → **Network** y marca **Keep log** (*Conservar registro*) antes de dar clic. Si no, cada clic recarga la página y la lista se limpia.
@@ -121,9 +127,13 @@ Cada clic de un `asp:Button` envía y recibe la página completa. A partir del d
 
 ## 4. Master Page y menú
 
+📖 [ASP.NET Master Pages Overview](https://learn.microsoft.com/en-us/previous-versions/wtxbf3hh(v=vs.140)) · [Tutoriales de Master Pages](https://learn.microsoft.com/en-us/aspnet/web-forms/overview/older-versions-getting-started/master-pages) (incluye *Control ID Naming in Content Pages*)
+
 Si la aplicación tiene 20 páginas con el mismo encabezado y menú, agregar una opción al menú significaría cambiar 20 archivos. La **Master Page** guarda ese marco común en un solo lugar; cada página solo pone su contenido. Es parecido a un formulario base heredado en WinForms.
 
 ### El layout
+
+📖 MDN: [`<header>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/header) · [`<nav>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/nav) · [`<main>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/main) · [`<section>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/section) · [`<article>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/article) · [`<aside>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/aside) · [`<footer>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/footer)
 
 ![Layout de la Master Page: header, nav, main y footer](img/layout-master-page.svg)
 
@@ -279,7 +289,7 @@ Bootstrap es CSS ya hecho: en lugar de escribir reglas, pones clases en el HTML.
      ```html
      <meta name="viewport" content="width=device-width, initial-scale=1" />
      ```
-     Sin ella, el celular finge que la pantalla mide unos 980 px y encoge la página, y el diseño adaptable de Bootstrap no funciona. 📖 [Bootstrap: Introduction → Responsive meta tag](https://getbootstrap.com/docs/5.3/getting-started/introduction/)
+     Sin ella, el celular finge que la pantalla mide unos 980 px y encoge la página, y el diseño adaptable de Bootstrap no funciona. 📖 [Bootstrap: Introduction → Responsive meta tag](https://getbootstrap.com/docs/5.3/getting-started/introduction/) · [MDN: viewport meta element](https://developer.mozilla.org/en-US/docs/Web/HTML/Guides/Viewport_meta_element)
    - En `<head>`, **antes** de `site.css`:
      ```html
      <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
@@ -480,6 +490,22 @@ En `Clientes.aspx`, dentro del `Content` de `MainContent`:
 - Los botones llevan `type="button"` para no hacer postback.
 
 ### La tabla
+
+Una tabla HTML se arma así:
+
+```
+<table>            la tabla
+├─ <thead>         encabezado
+│  └─ <tr>         una fila
+│     └─ <th>      celda de encabezado (título de columna)
+└─ <tbody>         cuerpo: los datos
+   └─ <tr>         una fila por registro
+      └─ <td>      celda de dato
+```
+
+Es como un `DataGridView`: el `thead` son los encabezados de columna y cada `tr` del `tbody` es un renglón. Separarlos importa: el día 2, JavaScript va a vaciar y llenar solo el `tbody`, sin tocar los encabezados.
+
+📖 Documentación (MDN): [`<table>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/table) · [`<thead>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/thead) · [`<tbody>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/tbody) · [`<tr>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/tr) · [`<th>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/th) · [`<td>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/td)
 
 Debajo de la tarjeta:
 
