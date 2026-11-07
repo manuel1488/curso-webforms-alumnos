@@ -275,6 +275,11 @@ Bootstrap es CSS ya hecho: en lugar de escribir reglas, pones clases en el HTML.
 1. Copia la carpeta [`plantillas/lib`](../plantillas/lib/) a la raíz de tu proyecto.
 2. En el Explorador de soluciones, **Mostrar todos los archivos** → clic derecho en `css` y en `lib` → **Incluir en el proyecto**.
 3. En `Site.Master`:
+   - En `<head>`, antes de cualquier `<link>`, la etiqueta **viewport**:
+     ```html
+     <meta name="viewport" content="width=device-width, initial-scale=1" />
+     ```
+     Sin ella, el celular finge que la pantalla mide unos 980 px y encoge la página, y el diseño adaptable de Bootstrap no funciona.
    - En `<head>`, **antes** de `site.css`:
      ```html
      <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
@@ -301,7 +306,7 @@ Hay dos tipos de clases:
 | Tipo | Qué hacen | Ejemplos |
 |---|---|---|
 | **Componentes** | Arman una pieza completa: una clase base más modificadores | `navbar navbar-expand`, `btn btn-primary btn-sm`, `table table-striped` |
-| **Utilidades** | Cambian una sola propiedad CSS | `bg-dark`, `py-3`, `text-muted`, `fw-bold` |
+| **Utilidades** | Cambian una sola propiedad CSS | `bg-dark`, `py-3`, `text-body-secondary`, `fw-bold` |
 
 Las utilidades se leen como **propiedad-lado-tamaño**:
 
@@ -334,13 +339,19 @@ En `Site.Master`, reemplaza de `<header>` a `</footer>`:
     </div>
 </header>
 
-<nav class="navbar navbar-expand bg-body-tertiary border-bottom">
+<nav class="navbar navbar-expand-md bg-body-tertiary border-bottom">
     <div class="container">
-        <div class="navbar-nav">
-            <a class="nav-link" href="Default.aspx">Inicio</a>
-            <a class="nav-link" href="Clientes.aspx">Clientes</a>
-            <a class="nav-link" href="Familias.aspx">Familias</a>
-            <a class="nav-link" href="Piezas.aspx">Piezas</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu"
+                aria-controls="menu" aria-expanded="false" aria-label="Abrir menú">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="menu">
+            <div class="navbar-nav">
+                <a class="nav-link" href="Default.aspx">Inicio</a>
+                <a class="nav-link" href="Clientes.aspx">Clientes</a>
+                <a class="nav-link" href="Familias.aspx">Familias</a>
+                <a class="nav-link" href="Piezas.aspx">Piezas</a>
+            </div>
         </div>
     </div>
 </nav>
@@ -351,7 +362,7 @@ En `Site.Master`, reemplaza de `<header>` a `</footer>`:
 </main>
 
 <footer class="border-top py-3">
-    <div class="container text-muted small">Curso de ASP.NET Web Forms</div>
+    <div class="container text-body-secondary small">Curso de ASP.NET Web Forms</div>
 </footer>
 ```
 
@@ -362,8 +373,58 @@ Y **quita el `<link>` de `css/site.css`**: sus reglas le dan estilo a las mismas
 | `container` | Centra el contenido y le da un ancho máximo |
 | `bg-dark`, `text-white`, `bg-body-tertiary` | Colores de fondo y de texto |
 | `py-3`, `py-4` | Espacio arriba y abajo |
-| `navbar`, `navbar-expand`, `navbar-nav`, `nav-link` | La barra de navegación y sus enlaces |
+| `navbar`, `navbar-nav`, `nav-link` | La barra de navegación y sus enlaces |
+| `navbar-expand-md` | La barra se extiende desde pantallas medianas; en celular los enlaces se colapsan |
+| `navbar-toggler`, `navbar-toggler-icon` | El botón ☰ que aparece en celular |
+| `collapse navbar-collapse` + `id="menu"` | Lo que se muestra u oculta al dar clic; `data-bs-target="#menu"` lo conecta con el botón |
 | `border-top`, `border-bottom` | Bordes |
-| `fs-4`, `fw-bold`, `small`, `text-muted` | Tamaño, peso y color del texto |
+| `fs-4`, `fw-bold`, `small`, `text-body-secondary` | Tamaño, peso y color del texto |
+
+> En ejemplos de internet verás `text-muted`: en Bootstrap 5.3 está obsoleta y su reemplazo es `text-body-secondary`. Revisa siempre la documentación de la versión que usas (5.3).
 
 Lee cada clase con la regla de arriba: es un componente con modificadores, o una utilidad *propiedad-lado-tamaño*.
+
+El botón ☰ usa el JavaScript de Bootstrap. Pruébalo en modo dispositivo (F12 → icono de dispositivo). Lleva `type="button"`: sin él, como está dentro del `<form runat="server">`, haría postback.
+
+> Si una clase tiene un error de escritura (`navbar-toggle` en lugar de `navbar-toggler`), Bootstrap no avisa: simplemente no la aplica. Revísala letra por letra.
+
+### El grid
+
+En `Default.aspx`, reemplaza el contenido del `<asp:Content>` de `MainContent` (la directiva y el code-behind no cambian):
+
+```aspx
+<div class="row">
+    <div class="col-md-8">
+        <h1>Hola desde el servidor</h1>
+        <p class="lead">Catálogo de clientes, familias y piezas.</p>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Servidor</h5>
+                <p class="card-text">Fecha y hora: <asp:Label ID="lblFecha" runat="server"></asp:Label></p>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+| Clase | Qué hace |
+|---|---|
+| `row` | Una fila del grid; se divide en **12 columnas** |
+| `col-md-8` / `col-md-4` | Desde pantallas medianas, 8 y 4 de las 12 columnas |
+| `card`, `card-body`, `card-title`, `card-text` | El componente tarjeta: base y sus partes |
+| `lead` | Párrafo de introducción, con letra más grande |
+
+Bootstrap es **mobile first**: cada clase aplica desde ese tamaño hacia arriba, hasta que otra la reemplace. Solo escribes los tamaños donde el diseño cambia, y van en las columnas, no en el `row`:
+
+| Clases | Celular | Tablet (`md`) | Escritorio (`lg`) |
+|---|---|---|---|
+| `col-md-6` | Fila completa | Media fila | Media fila |
+| `col-6` | Media fila | Media fila | Media fila |
+| `col-12 col-md-6 col-lg-4` | Fila completa | 2 por fila | 3 por fila |
+| `col` | Partes iguales | Partes iguales | Partes iguales |
+
+Pruébalo con la ventana ancha (dos columnas) y en modo dispositivo (la tarjeta baja debajo del texto).
+
+> ¿Por qué hace falta el `viewport`? El primer iPhone dibujaba las páginas en un ancho virtual de 980 px, porque casi todos los sitios eran de escritorio, y luego las encogía. El `viewport` le dice al navegador que tu página sí está hecha para celular y que use el ancho real.

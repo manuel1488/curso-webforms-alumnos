@@ -31,6 +31,21 @@ Antes de preguntar, abre **F12 → Network** y revisa la respuesta del servidor:
 - `data-field` debe coincidir **exactamente** (mayúsculas incluidas) con las propiedades del JSON.
 - Verifica que el JSON tenga la forma que espera la tabla (un arreglo de objetos).
 
+## Bootstrap no se ve como en el ejemplo
+- Revisa la clase letra por letra: si está mal escrita (`navbar-toggle` en lugar de `navbar-toggler`), Bootstrap no avisa, simplemente no la aplica.
+- Revisa que la clase exista en la versión que usamos (5.3): muchos ejemplos de internet son de versiones anteriores.
+- Con F12 → Elements → Styles ves qué reglas se aplican al elemento.
+
+## En modo dispositivo (F12) todo se ve enorme y cortado
+No es tu página: es el zoom que Chrome guarda para `localhost`. Presiona **Ctrl+0** en esa pestaña y recarga. Si sigue, prueba en una ventana de incógnito.
+
+## En celular el diseño no se adapta
+Falta la etiqueta `viewport` en el `<head>` de `Site.Master`:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+```
+
 ## El modal no abre o no cierra
 - En Bootstrap 5 los atributos son `data-bs-toggle` y `data-bs-target`.
 - Desde JavaScript: `bootstrap.Modal.getOrCreateInstance('#miModal').show();`
