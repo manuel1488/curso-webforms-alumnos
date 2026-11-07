@@ -5,7 +5,7 @@ Lo que construimos juntos en clase. Si te atrasas o algo no te funciona, compár
 | Bloque | Secciones | Solución para comparar |
 |---|---|---|
 | **Bloque 2** · Proyecto, primera página y Master Page | [1](#1-crear-el-proyecto) · [2](#2-primera-página) · [3](#3-el-contador-por-qué-siempre-1) · [4](#4-master-page-y-menú) | [`bloque-2/`](bloque-2/) |
-| **Bloque 3** · CSS, Bootstrap, Clientes y Git | [5](#5-css) · [6](#6-bootstrap) | `final/`, al cierre del día |
+| **Bloque 3** · CSS, Bootstrap, Clientes y Git | [5](#5-css) · [6](#6-bootstrap) · [7](#7-ejercicio-maquetar-clientesaspx) | `final/`, al cierre del día |
 
 ---
 
@@ -279,7 +279,7 @@ Bootstrap es CSS ya hecho: en lugar de escribir reglas, pones clases en el HTML.
      ```html
      <meta name="viewport" content="width=device-width, initial-scale=1" />
      ```
-     Sin ella, el celular finge que la pantalla mide unos 980 px y encoge la página, y el diseño adaptable de Bootstrap no funciona.
+     Sin ella, el celular finge que la pantalla mide unos 980 px y encoge la página, y el diseño adaptable de Bootstrap no funciona. 📖 [Bootstrap: Introduction → Responsive meta tag](https://getbootstrap.com/docs/5.3/getting-started/introduction/)
    - En `<head>`, **antes** de `site.css`:
      ```html
      <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
@@ -326,7 +326,9 @@ Las utilidades se leen como **propiedad-lado-tamaño**:
 - En la [documentación de Bootstrap 5.3](https://getbootstrap.com/docs/5.3/), el menú lateral separa *Layout*, *Content*, *Forms*, *Components* y *Utilities*. Cada página trae ejemplos para copiar.
 - Con **F12 → Elements → Styles** ves qué CSS aplica cada clase del elemento que selecciones.
 
-No hace falta memorizarlas: basta con saber leerlas y dónde buscarlas.
+No hace falta memorizarlas: basta con saber leerlas y dónde buscarlas. Por ejemplo, si buscas `mb-4` en la documentación no aparece tal cual: aparece la fórmula en *Spacing* (`m` + `b` + `4` = margin abajo, tamaño 4). Busca la familia de la clase, no la clase exacta.
+
+📖 Documentación: [Spacing](https://getbootstrap.com/docs/5.3/utilities/spacing/) · [Colors](https://getbootstrap.com/docs/5.3/utilities/colors/) · [Background](https://getbootstrap.com/docs/5.3/utilities/background/) · [Text](https://getbootstrap.com/docs/5.3/utilities/text/) · [Borders](https://getbootstrap.com/docs/5.3/utilities/borders/) · [Breakpoints](https://getbootstrap.com/docs/5.3/layout/breakpoints/)
 
 ### La navbar
 
@@ -382,6 +384,8 @@ Y **quita el `<link>` de `css/site.css`**: sus reglas le dan estilo a las mismas
 
 > En ejemplos de internet verás `text-muted`: en Bootstrap 5.3 está obsoleta y su reemplazo es `text-body-secondary`. Revisa siempre la documentación de la versión que usas (5.3).
 
+📖 Documentación: [Navbar](https://getbootstrap.com/docs/5.3/components/navbar/) · [Collapse](https://getbootstrap.com/docs/5.3/components/collapse/) · [Containers](https://getbootstrap.com/docs/5.3/layout/containers/) · [Colors](https://getbootstrap.com/docs/5.3/utilities/colors/) · [Spacing](https://getbootstrap.com/docs/5.3/utilities/spacing/) · [Borders](https://getbootstrap.com/docs/5.3/utilities/borders/) · [Text](https://getbootstrap.com/docs/5.3/utilities/text/)
+
 Lee cada clase con la regla de arriba: es un componente con modificadores, o una utilidad *propiedad-lado-tamaño*.
 
 El botón ☰ usa el JavaScript de Bootstrap. Pruébalo en modo dispositivo (F12 → icono de dispositivo). Lleva `type="button"`: sin él, como está dentro del `<form runat="server">`, haría postback.
@@ -425,6 +429,113 @@ Bootstrap es **mobile first**: cada clase aplica desde ese tamaño hacia arriba,
 | `col-12 col-md-6 col-lg-4` | Fila completa | 2 por fila | 3 por fila |
 | `col` | Partes iguales | Partes iguales | Partes iguales |
 
+📖 Documentación: [Grid](https://getbootstrap.com/docs/5.3/layout/grid/) · [Breakpoints](https://getbootstrap.com/docs/5.3/layout/breakpoints/) · [Card](https://getbootstrap.com/docs/5.3/components/card/) · [Typography](https://getbootstrap.com/docs/5.3/content/typography/) (`lead`)
+
 Pruébalo con la ventana ancha (dos columnas) y en modo dispositivo (la tarjeta baja debajo del texto).
 
 > ¿Por qué hace falta el `viewport`? El primer iPhone dibujaba las páginas en un ancho virtual de 980 px, porque casi todos los sitios eran de escritorio, y luego las encogía. El `viewport` le dice al navegador que tu página sí está hecha para celular y que use el ancho real.
+
+## 7. Ejercicio: maquetar `Clientes.aspx`
+
+La maqueta que el día 2 conectaremos a SQL Server. Usamos `<input>` y `<button>` normales, no controles `asp:`, porque los manejaremos con jQuery y AJAX; por eso los `id` ya llevan el nombre que usaremos (`txtNombre`, `btnGuardar`, `tblClientes`). Los `maxlength` coinciden con las columnas de la tabla `Clientes`.
+
+### El formulario
+
+En `Clientes.aspx`, dentro del `Content` de `MainContent`:
+
+```aspx
+<h1 class="mb-4">Clientes</h1>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Nuevo cliente</h5>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="txtNombre" class="form-label">Nombre</label>
+                <input type="text" id="txtNombre" class="form-control" maxlength="150" />
+            </div>
+            <div class="col-md-3">
+                <label for="txtRFC" class="form-label">RFC</label>
+                <input type="text" id="txtRFC" class="form-control" maxlength="13" />
+            </div>
+            <div class="col-md-3">
+                <label for="txtContacto" class="form-label">Contacto</label>
+                <input type="text" id="txtContacto" class="form-control" maxlength="100" />
+            </div>
+            <div class="col-md-6">
+                <label for="txtCorreo" class="form-label">Correo</label>
+                <input type="email" id="txtCorreo" class="form-control" maxlength="150" />
+            </div>
+        </div>
+        <div class="mt-3">
+            <button type="button" id="btnGuardar" class="btn btn-primary">Guardar</button>
+            <button type="button" id="btnLimpiar" class="btn btn-outline-secondary">Limpiar</button>
+        </div>
+    </div>
+</div>
+```
+
+- `label for="txtNombre"` conecta la etiqueta con su caja: al dar clic en la etiqueta, el cursor entra a la caja.
+- `type="email"` hace que el celular muestre el teclado con `@`.
+- Los botones llevan `type="button"` para no hacer postback.
+
+### La tabla
+
+Debajo de la tarjeta:
+
+```aspx
+<table id="tblClientes" class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>RFC</th>
+            <th>Contacto</th>
+            <th>Correo</th>
+            <th class="text-end">Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Autopartes del Bajío</td>
+            <td>ABA010101AA1</td>
+            <td>Laura Méndez</td>
+            <td>laura@ejemplo.com</td>
+            <td class="text-end">
+                <button type="button" class="btn btn-sm btn-outline-primary">Editar</button>
+                <button type="button" class="btn btn-sm btn-outline-danger">Eliminar</button>
+            </td>
+        </tr>
+        <tr>
+            <td>Componentes Industriales GTO</td>
+            <td>CIG020202BB2</td>
+            <td>Jorge Ramírez</td>
+            <td>jorge@ejemplo.com</td>
+            <td class="text-end">
+                <button type="button" class="btn btn-sm btn-outline-primary">Editar</button>
+                <button type="button" class="btn btn-sm btn-outline-danger">Eliminar</button>
+            </td>
+        </tr>
+    </tbody>
+</table>
+```
+
+Los renglones están escritos a mano; el día 2 los llenará la base de datos.
+
+### Las clases nuevas
+
+| Clase | Se lee | 📖 Documentación |
+|---|---|---|
+| `mb-4`, `mt-3` | **m**argin **b**ottom tamaño 4, **m**argin **t**op tamaño 3 | [Spacing](https://getbootstrap.com/docs/5.3/utilities/spacing/) |
+| `g-3` | **g**utter tamaño 3: la separación entre las columnas de un `row`, horizontal y vertical. `gx-*` solo horizontal, `gy-*` solo vertical | [Gutters](https://getbootstrap.com/docs/5.3/layout/gutters/) |
+| `form-label`, `form-control` | Etiqueta y caja de texto con estilo de formulario | [Form controls](https://getbootstrap.com/docs/5.3/forms/form-control/) |
+| `btn btn-primary`, `btn-outline-secondary`, `btn-sm` | Botón: base + color (relleno o solo borde) + tamaño | [Buttons](https://getbootstrap.com/docs/5.3/components/buttons/) |
+| `table table-striped table-hover` | Tabla: base + renglones alternados + resaltado al pasar el mouse | [Tables](https://getbootstrap.com/docs/5.3/content/tables/) |
+| `text-end` | Texto alineado al final (a la derecha) | [Text](https://getbootstrap.com/docs/5.3/utilities/text/) |
+
+> Quita `g-3` y vuelve a ponerlo: sin él, las cajas del formulario quedan pegadas entre sí, sobre todo en celular.
+
+### Probar
+
+1. En pantalla ancha: el formulario en dos filas y la tabla debajo.
+2. En modo dispositivo: los campos se apilan uno por fila.
+3. Cambia `btn-primary` por `btn-success` y `table-striped` por `table-bordered` consultando la documentación, y luego regrésalos.
