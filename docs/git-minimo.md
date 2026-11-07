@@ -31,6 +31,42 @@ git config --global -l
 
 `-l` es la forma corta de `--list`. Si solo quieres ver un valor: `git config --global user.name`.
 
+### Conectar Git con tu cuenta de GitHub
+
+📖 [GitHub: configurar el correo de tus commits](https://docs.github.com/es/account-and-profile/how-tos/email-preferences/setting-your-commit-email-address) · [GitHub: guardar tus credenciales en Git](https://docs.github.com/es/get-started/git-basics/caching-your-github-credentials-in-git)
+
+Son dos cosas distintas:
+
+| Qué | Para qué | Cómo |
+|---|---|---|
+| **El correo** (`user.email`) | Que GitHub reconozca tus commits como tuyos y los muestre en tu perfil | Usa el **mismo correo de tu cuenta de GitHub**. Si no quieres exponerlo, usa el correo privado que GitHub te da en *Settings → Emails* (termina en `@users.noreply.github.com`) |
+| **La autenticación** | Que GitHub te deje clonar un repo privado y hacer `push` | No se usa contraseña. Git para Windows trae **Git Credential Manager**: la primera vez que haces `clone` de un repo privado o `push`, se abre el navegador para que inicies sesión en GitHub y autorices. Queda guardado en Windows y no vuelve a pedirlo |
+
+Si el correo no coincide con tu cuenta, los commits sí suben, pero en GitHub aparecen sin tu foto ni tu usuario.
+
+#### Cómo se ve la primera vez
+
+1. Al hacer `clone` de un repo privado (o tu primer `push`), aparece la ventana **Connect to GitHub**. Elige **Sign in with your browser**.
+
+   ![Ventana Connect to GitHub de Git Credential Manager](img/git-01-gcm-ventana.png)
+
+   Si el navegador no se puede abrir en tu equipo, usa **Sign in with a code**: te da un código para escribir en `https://github.com/login/device` desde cualquier navegador.
+
+2. En el navegador, inicia sesión en GitHub y, si te lo pide, autoriza **Git Credential Manager**. Al terminar puede quedar una pestaña en blanco con `127.0.0.1` en la dirección: es normal, ya la puedes cerrar.
+3. En la terminal aparece `please complete authentication in your browser...` mientras esperas, y después el comando continúa solo:
+
+   ![Terminal: git clone con la autenticación completada](img/git-02-clone-terminal.png)
+
+Desde ahí ya no vuelve a pedirlo.
+
+Para revisar que Git usa el administrador de credenciales:
+
+```powershell
+git config credential.helper
+```
+
+Debe responder `manager`. Va sin `--global` porque el instalador de Git lo guarda en la configuración del sistema, no en la tuya; por eso tampoco aparece en `git config --global -l`. Si iniciaste sesión con la cuenta equivocada, ve al *Administrador de credenciales* de Windows → *Credenciales de Windows*, borra la entrada `git:https://github.com` y vuelve a intentar: te pedirá iniciar sesión otra vez.
+
 ## 2. Tu proyecto en Git
 
 📖 [`git init`](https://git-scm.com/docs/git-init) · [`git status`](https://git-scm.com/docs/git-status) · [`git add`](https://git-scm.com/docs/git-add) · [`git commit`](https://git-scm.com/docs/git-commit)

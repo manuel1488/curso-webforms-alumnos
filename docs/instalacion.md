@@ -153,7 +153,7 @@ Todo el material del curso (guías, scripts y la solución de cada día) está e
 
 ### 6.0 Git para Windows
 
-1. Descárgalo de `https://git-scm.com/download/win` e instálalo con las opciones por defecto.
+1. Descárgalo de `https://git-scm.com/download/win` e instálalo con las opciones por defecto. Entre ellas viene **Git Credential Manager**, que es lo que te permite iniciar sesión en GitHub desde el navegador; no lo desactives.
 2. Abre una terminal nueva (PowerShell) y verifica:
 
 ```powershell
@@ -175,7 +175,7 @@ Debe responder con un número de versión.
 3. En *Ruta de acceso* elige tu carpeta de trabajo, por ejemplo `C:\cursos\curso-webforms-alumnos`.
 4. Clic en **Clonar**. Si te pide iniciar sesión en GitHub, hazlo con tu cuenta.
 
-> Si prefieres la terminal: `git clone https://github.com/manuel1488/curso-webforms-alumnos.git` dentro de `C:\cursos`.
+> Si prefieres la terminal: `git clone https://github.com/manuel1488/curso-webforms-alumnos.git` dentro de `C:\cursos`. La primera vez se abre la ventana **Connect to GitHub** para iniciar sesión; los pasos con capturas están en [Git básico → Cómo se ve la primera vez](git-minimo.md#cómo-se-ve-la-primera-vez).
 
 ### 6.3 Traer lo nuevo cada día
 

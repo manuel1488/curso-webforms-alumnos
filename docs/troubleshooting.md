@@ -64,6 +64,14 @@ El sitio corre con la identidad del Application Pool, no con tu usuario. En SSMS
 ## Git: `Author identity unknown` al hacer commit
 Falta configurar tu nombre y correo: `git config --global user.name "..."` y `git config --global user.email "..."`. Revisa lo que tienes con `git config --global -l`.
 
+## Git: `Repository not found` o `Authentication failed` con el repo del curso
+El repo es privado y GitHub no te reconoce con acceso:
+- Revisa que aceptaste la invitación (llega por correo o en `https://github.com/notifications`).
+- Si iniciaste sesión con otra cuenta de GitHub, ve al *Administrador de credenciales* de Windows → *Credenciales de Windows*, borra `git:https://github.com` y vuelve a intentar.
+
+## Git: mis commits en GitHub no salen con mi usuario
+El correo de `git config --global user.email` no es el de tu cuenta de GitHub. Cámbialo por el de tu cuenta (o por el `@users.noreply.github.com` de *Settings → Emails*). Los commits nuevos ya saldrán con tu usuario.
+
 ## Git: `src refspec main does not match any` al hacer push
 Todavía no tienes ningún commit, o tu rama se llama `master`. Revisa con `git branch`. Si es `master`: `git branch -M main` y vuelve a hacer push.
 
