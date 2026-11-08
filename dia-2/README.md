@@ -22,3 +22,6 @@
 
 ## Resultado esperado
 Puedes dar de alta un cliente desde la página y verlo en el listado sin recargar.
+
+## Material
+- [Paso a paso del día](paso-a-paso.md)

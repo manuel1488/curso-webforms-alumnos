@@ -2,6 +2,9 @@
 
 Antes de preguntar, abre **F12 → Network** y revisa la respuesta del servidor: casi siempre ahí está el error real.
 
+## En la consola sale `favicon.ico` 404
+Es normal: el navegador siempre busca un icono para la pestaña y el proyecto no tiene. No afecta en nada.
+
 ## La llamada AJAX no hace nada
 - Revisa la pestaña **Console** por errores de JavaScript.
 - Revisa **Network**: ¿se hizo la petición? ¿Qué código de estado regresó?
