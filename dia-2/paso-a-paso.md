@@ -218,3 +218,140 @@ document.getElementById('btnGuardar').addEventListener('click', () => {
 Escribe algo en **Nombre** y da clic en **Guardar**: aparece en la consola.
 
 `txtNombre` se encontró con su `id` tal cual, sin el `MainContent_` del día 1, porque es un `<input>` normal y no un control `asp:`. Con jQuery, `document.getElementById('txtNombre').value` se escribe `$('#txtNombre').val()`: es lo que sigue.
+
+## 3. jQuery: el archivo `clientes.js`
+
+### Seleccionar elementos
+
+📖 [jQuery: Selectors](https://api.jquery.com/category/selectors/) · [MDN: `querySelector`](https://developer.mozilla.org/es/docs/Web/API/Document/querySelector) · [MDN: `querySelectorAll`](https://developer.mozilla.org/es/docs/Web/API/Document/querySelectorAll)
+
+| Buscar | JavaScript puro | jQuery |
+|---|---|---|
+| Por `id` | `document.getElementById('txtNombre')` | `$('#txtNombre')` |
+| Por clase | `document.querySelectorAll('.form-control')` | `$('.form-control')` |
+| Por etiqueta | `document.querySelectorAll('input')` | `$('input')` |
+| Por atributo | `document.querySelectorAll('input[type=email]')` | `$('input[type=email]')` |
+| Varios a la vez | `document.querySelectorAll('#txtNombre, #txtRFC')` | `$('#txtNombre, #txtRFC')` |
+| Dentro de otro | `document.querySelectorAll('#tblClientes tbody tr')` | `$('#tblClientes tbody tr')` |
+
+- Lo que va entre comillas es un **selector CSS**: `#` es id, `.` es clase y sin símbolo es la etiqueta.
+- jQuery siempre regresa una colección, aunque encuentre uno o ninguno, así que **no marca error** si el `id` está mal escrito: simplemente no hace nada. Para revisarlo: `$('#txtNombr').length` responde `0`.
+- Con controles `asp:` el `id` cambia (`MainContent_lblFecha`, día 1). Con `<input>` normales, es el que escribiste.
+
+### Cuándo corre el código: `$(function () { ... })`
+
+📖 [jQuery: `.ready()`](https://api.jquery.com/ready/) · [Learn jQuery: `$( document ).ready()`](https://learn.jquery.com/using-jquery-core/document-ready/) · [MDN: `DOMContentLoaded`](https://developer.mozilla.org/es/docs/Web/API/Document/DOMContentLoaded_event)
+
+| Forma | Cuándo corre |
+|---|---|
+| `$(document).ready(function () { ... })` | Cuando el HTML ya está construido, **sin** esperar imágenes |
+| `$(function () { ... })` | Igual que la anterior: es su forma corta, la que usamos en el curso |
+| `$(window).on('load', function () { ... })` | Cuando **todo** terminó de cargar, incluidas imágenes. Solo si el código necesita algo de ellas |
+
+- Es la forma corta de `$(document).ready(function () { ... })`: lo de adentro corre **una sola vez, cuando el navegador terminó de construir la página**, sin esperar a las imágenes. Es como el evento `Load` de un formulario de WinForms.
+- Las funciones que están afuera solo se **definen** al cargar el archivo; no hacen nada hasta que alguien las llama.
+
+### Crear `clientes.js`
+
+📖 [jQuery: `.val()`](https://api.jquery.com/val/) · [jQuery: `.on()`](https://api.jquery.com/on/) · [jQuery: `.trigger()`](https://api.jquery.com/trigger/)
+
+1. En `Clientes.aspx`, debajo del `<h1>`:
+   ```html
+   <div id="divMensaje" class="alert d-none" role="alert"></div>
+   ```
+   Y en el `Content` de `Scripts`:
+   ```html
+   <script src="js/clientes.js"></script>
+   ```
+2. Crea la carpeta `js` y el archivo `clientes.js`:
+   ```javascript
+   $(function () {
+       $('#btnGuardar').on('click', guardar);
+       $('#btnLimpiar').on('click', limpiar);
+   });
+
+   function obtenerCliente() {
+       return {
+           clienteId: 0,
+           nombre: $('#txtNombre').val().trim(),
+           rfc: $('#txtRFC').val().trim(),
+           contacto: $('#txtContacto').val().trim(),
+           correo: $('#txtCorreo').val().trim()
+       };
+   }
+
+   function validarCliente(c) {
+       const errores = [];
+       if (!c.nombre.trim()) {
+           errores.push('El nombre es obligatorio.');
+       }
+       if (c.nombre.length > 150) {
+           errores.push('El nombre no puede pasar de 150 caracteres.');
+       }
+       if (c.correo && !c.correo.includes('@')) {
+           errores.push('El correo no es válido.');
+       }
+       return errores;
+   }
+
+   function mostrarMensaje(texto, tipo) {
+       $('#divMensaje')
+           .removeClass('d-none alert-success alert-danger')
+           .addClass('alert-' + tipo)
+           .html(texto);
+   }
+
+   function ocultarMensaje() {
+       $('#divMensaje').addClass('d-none').empty();
+   }
+
+   function guardar() {
+       ocultarMensaje();
+       const cliente = obtenerCliente();
+       const errores = validarCliente(cliente);
+       if (errores.length > 0) {
+           mostrarMensaje(errores.join('<br>'), 'danger');
+           return;
+       }
+       console.log('Se enviará al servidor:', JSON.stringify(cliente));
+   }
+
+   function limpiar() {
+       $('#txtNombre, #txtRFC, #txtContacto, #txtCorreo').val('');
+       ocultarMensaje();
+       $('#txtNombre').trigger('focus');
+   }
+   ```
+
+| Pieza | Viene de |
+|---|---|
+| `$('#txtNombre').val()` | Ejercicio 6: `document.getElementById('txtNombre').value` |
+| `.on('click', guardar)` | Ejercicio 6: `addEventListener('click', ...)` |
+| `obtenerCliente()` | Ejercicio 2: el objeto `cliente`, ahora leído de las cajas |
+| `validarCliente()` | Ejercicio 5, tal cual |
+| `errores.join('<br>')` | Ejercicio 4: arreglos |
+| `JSON.stringify(cliente)` | Ejercicio 3: lo que después se enviará al handler |
+
+### El mensaje: `alert` y `d-none`
+
+📖 [Bootstrap: Alerts](https://getbootstrap.com/docs/5.3/components/alerts/) · [Bootstrap: Display](https://getbootstrap.com/docs/5.3/utilities/display/) · [jQuery: `.addClass()`](https://api.jquery.com/addClass/) · [jQuery: `.removeClass()`](https://api.jquery.com/removeClass/)
+
+| Clase | Qué hace | De dónde viene |
+|---|---|---|
+| `alert` | Caja de aviso | Componente *Alerts* de Bootstrap |
+| `alert-danger` / `alert-success` | Rojo para errores, verde para éxito | Componente *Alerts* |
+| `d-none` | **d**isplay: **none**: oculta el elemento por completo | Utilidades *Display* de Bootstrap |
+
+- `d-none` se lee con la regla de la hoja de nomenclatura: `d` = display, `none` = valor. También existen `d-block`, `d-flex` y, por tamaño de pantalla, `d-md-none`.
+- El mensaje nace oculto con `d-none`. Para mostrarlo, jQuery quita `d-none` y pone el color; para ocultarlo, vuelve a poner `d-none`. Mostrar y ocultar con JavaScript casi siempre es **poner y quitar clases**.
+- `role="alert"` hace que los lectores de pantalla anuncien el mensaje.
+- `.html()` lo usamos solo con nuestros propios textos. Cuando el mensaje venga del servidor usaremos `.text()`, por seguridad.
+
+### Probar
+
+Con F12 → Console abierta:
+
+1. **Guardar** con todo vacío → mensaje rojo *"El nombre es obligatorio."*
+2. Un nombre y en Correo `sin-arroba` → *"El correo no es válido."*
+3. Corrige el correo → el mensaje desaparece y en la consola sale el JSON.
+4. **Limpiar** → cajas vacías, sin mensaje y el cursor en Nombre.
