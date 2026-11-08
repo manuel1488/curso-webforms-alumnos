@@ -355,3 +355,86 @@ Con F12 → Console abierta:
 2. Un nombre y en Correo `sin-arroba` → *"El correo no es válido."*
 3. Corrige el correo → el mensaje desaparece y en la consola sale el JSON.
 4. **Limpiar** → cajas vacías, sin mensaje y el cursor en Nombre.
+
+---
+
+> **Bloque 2 · Base de datos, capas y handler**
+
+## 4. La tabla `Clientes` en SQL Server
+
+📖 [CREATE TABLE](https://learn.microsoft.com/es-es/sql/t-sql/statements/create-table-transact-sql) · [IDENTITY](https://learn.microsoft.com/es-es/sql/t-sql/statements/create-table-transact-sql-identity-property) · [nchar y nvarchar](https://learn.microsoft.com/es-es/sql/t-sql/data-types/nchar-and-nvarchar-transact-sql) · [datetime2](https://learn.microsoft.com/es-es/sql/t-sql/data-types/datetime2-transact-sql) · [datetime](https://learn.microsoft.com/es-es/sql/t-sql/data-types/datetime-transact-sql) · [SYSDATETIME](https://learn.microsoft.com/es-es/sql/t-sql/functions/sysdatetime-transact-sql)
+
+Escríbelo a mano en SSMS (**Nueva consulta**). Si algo no te funciona, compara con [`sql/01-esquema.sql`](../sql/01-esquema.sql).
+
+### Crear la base y la tabla
+
+```sql
+CREATE DATABASE CursoWeb;
+GO
+USE CursoWeb;
+GO
+
+CREATE TABLE dbo.Clientes
+(
+      ClienteId      INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Clientes PRIMARY KEY
+    , Nombre         NVARCHAR(150)     NOT NULL
+    , RFC            VARCHAR(13)       NULL
+    , Contacto       NVARCHAR(100)     NULL
+    , Correo         VARCHAR(150)      NULL
+    , Activo         BIT               NOT NULL CONSTRAINT DF_Clientes_Activo DEFAULT (1)
+    , FechaAlta      DATETIME2(0)      NOT NULL CONSTRAINT DF_Clientes_FechaAlta DEFAULT (SYSDATETIME())
+);
+```
+
+| Línea | Qué significa |
+|---|---|
+| `IDENTITY(1,1)` | SQL Server genera el número solo, empezando en 1. Por eso el objeto de JavaScript trae `clienteId: 0` |
+| `CONSTRAINT PK_...` / `DF_...` | Nombres propios para la llave primaria y los valores por defecto |
+| `NVARCHAR` vs `VARCHAR` | `NVARCHAR` es Unicode: acepta cualquier carácter. El RFC y el correo no lo necesitan |
+| `NOT NULL` / `NULL` | El nombre es obligatorio; lo demás no (igual que en `validarCliente()`) |
+| `Activo ... DEFAULT (1)` | Eliminación lógica: no se borra, se marca `0` |
+| `DATETIME2(0)` y `SYSDATETIME()` | Fecha y hora del servidor, en segundos |
+
+### Por qué `DATETIME2` y no `DATETIME`
+
+Microsoft recomienda evitar `DATETIME` en desarrollos nuevos:
+
+| | `DATETIME` | `DATETIME2` |
+|---|---|---|
+| Rango de fechas | 1753-01-01 a 9999-12-31 | 0001-01-01 a 9999-12-31 |
+| Precisión | Redondea a .000, .003 o .007 segundos | Configurable de 0 a 7 decimales |
+| Tamaño | 8 bytes | 6 a 8 bytes (`DATETIME2(0)` = 6) |
+| Estándar | No cumple ANSI ni ISO 8601 | Cumple el estándar SQL |
+| Hora actual | `GETDATE()` | `SYSDATETIME()` |
+
+`(0)` son cero decimales en los segundos: para saber cuándo se dio de alta un cliente bastan los segundos.
+
+### Insertar y consultar
+
+```sql
+INSERT INTO dbo.Clientes (Nombre, RFC, Contacto, Correo)
+VALUES
+      (N'Autopartes del Bajío',        'ABA010101AA1', N'Laura Méndez',  'laura@ejemplo.com')
+    , (N'Componentes Industriales GTO', 'CIG020202BB2', N'Jorge Ramírez', 'jorge@ejemplo.com');
+
+SELECT
+      c.ClienteId   AS ClienteId
+    , c.Nombre      AS Nombre
+    , c.RFC         AS RFC
+    , c.Activo      AS Activo
+    , c.FechaAlta   AS FechaAlta
+FROM
+    dbo.Clientes AS c;
+```
+
+`ClienteId`, `Activo` y `FechaAlta` se llenaron solos.
+
+### La `N` delante del texto
+
+Sin la `N`, el texto se convierte a la página de códigos de la base de datos y lo que no exista en ella se pierde:
+
+```sql
+SELECT 'ñ á 漢 😀' AS SinN, N'ñ á 漢 😀' AS ConN;
+```
+
+`SinN` devuelve `ñ á ? ??` y `ConN` lo devuelve completo. Con una intercalación en español, los acentos y la ñ sí se conservan; lo que se pierde es lo que queda fuera (emojis, otros alfabetos, algunos símbolos). Regla: **con columnas `NVARCHAR`, la `N` siempre**. En la aplicación no hará falta, porque los parámetros de C# ya envían Unicode.
