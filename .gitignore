@@ -12,6 +12,8 @@ packages/
 PublishProfiles/*.pubxml.user
 # Publicación local
 publish/
+# Cadena de conexión con contraseña (se sube solo connectionStrings.ejemplo.config)
+connectionStrings.config
 # Excel generados en pruebas
 *.xlsx
 !plantillas/*.xlsx

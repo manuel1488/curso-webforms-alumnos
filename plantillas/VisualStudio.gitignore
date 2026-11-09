@@ -31,6 +31,9 @@ packages/
 PublishProfiles/*.pubxml.user
 *.publishproj
 
+# Cadena de conexión con contraseña (se sube solo connectionStrings.ejemplo.config)
+connectionStrings.config
+
 # Archivos temporales y de caché
 *.cache
 *.tmp

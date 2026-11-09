@@ -27,8 +27,22 @@ Es normal: el navegador siempre busca un icono para la pestaña y el proyecto no
 - El nombre del campo debe ser igual en JavaScript y en C#.
 
 ## Error de conexión a SQL Server
-- Revisa la cadena de conexión en `Web.config` (servidor e instancia).
-- Prueba la misma conexión en SSMS. Con SQL Express la instancia suele ser `.\SQLEXPRESS`.
+- Revisa la cadena en `connectionStrings.config` (servidor, instancia, usuario y contraseña).
+- Prueba los mismos datos en SSMS con *SQL Server Authentication*.
+- Con SQL Express la instancia suele ser `.\SQLEXPRESS`.
+
+## `Keyword not supported` al abrir la conexión
+Hay una palabra mal escrita en la cadena de conexión (por ejemplo `Initial Catalgo` en lugar de `Initial Catalog`). Revísala letra por letra.
+
+## `Unable to open configSource file 'connectionStrings.config'`
+Falta el archivo con la cadena de conexión: no se sube a Git. Copia `connectionStrings.ejemplo.config` como `connectionStrings.config` en la misma carpeta y pon tu contraseña.
+
+## `Login failed for user 'usrCursoWeb'`
+- Revisa la contraseña en `connectionStrings.config`.
+- Comprueba que la autenticación mixta esté activa: `SELECT SERVERPROPERTY('IsIntegratedSecurityOnly')` debe dar `0`.
+
+## `The DELETE permission was denied`
+Es correcto: `usrCursoWeb` no tiene permiso de borrar. En el curso usamos eliminación lógica (`Activo = 0`).
 
 ## Bootstrap Table no muestra datos
 - `data-field` debe coincidir **exactamente** (mayúsculas incluidas) con las propiedades del JSON.

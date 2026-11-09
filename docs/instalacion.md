@@ -111,6 +111,15 @@ Abre SSMS y conéctate con **Windows Authentication**. En *Server name* escribe 
 
 ![SSMS, ventana Conectar al servidor](img/14-ssms-conexion.png)
 
+Ya conectado, abre **New Query** y comprueba que quedó la autenticación mixta (la usaremos el día 2):
+
+```sql
+SELECT
+    SERVERPROPERTY('IsIntegratedSecurityOnly') AS SoloWindows;
+```
+
+Debe responder **`0`**. Si responde `1`, clic derecho en el servidor → **Properties → Security** → *SQL Server and Windows Authentication mode* → OK, y después clic derecho en el servidor → **Restart**.
+
 ## 3. IIS
 
 *Panel de control → Programas → Activar o desactivar características de Windows*:

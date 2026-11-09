@@ -438,3 +438,238 @@ SELECT 'ñ á 漢 😀' AS SinN, N'ñ á 漢 😀' AS ConN;
 ```
 
 `SinN` devuelve `ñ á ? ??` y `ConN` lo devuelve completo. Con una intercalación en español, los acentos y la ñ sí se conservan; lo que se pierde es lo que queda fuera (emojis, otros alfabetos, algunos símbolos). Regla: **con columnas `NVARCHAR`, la `N` siempre**. En la aplicación no hará falta, porque los parámetros de C# ya envían Unicode.
+
+> Si `dbo.Clientes` no aparece en el *Explorador de objetos*: clic derecho en *Tables* → **Refresh**.
+
+## 5. Usuario dedicado y cadena de conexión
+
+📖 [Modo de autenticación del servidor](https://learn.microsoft.com/es-es/sql/database-engine/configure-windows/change-server-authentication-mode) · [CREATE LOGIN](https://learn.microsoft.com/es-es/sql/t-sql/statements/create-login-transact-sql) · [CREATE USER](https://learn.microsoft.com/es-es/sql/t-sql/statements/create-user-transact-sql) · [GRANT (esquema)](https://learn.microsoft.com/es-es/sql/t-sql/statements/grant-schema-permissions-transact-sql) · [Cadenas de conexión y archivos de configuración](https://learn.microsoft.com/es-es/previous-versions/dotnet/netframework-4.0/ms254494(v=vs.100))
+
+La aplicación no debe entrar a la base con tu usuario de Windows (que seguramente es administrador) ni con `sa`. Le damos un usuario propio con lo mínimo que necesita: si alguien lograra inyectar SQL o se filtrara la cadena, el daño se limita a eso.
+
+### Verificar la autenticación mixta
+
+```sql
+SELECT
+    SERVERPROPERTY('IsIntegratedSecurityOnly') AS SoloWindows;
+```
+
+- `0`: la autenticación mixta está activa. Sigue.
+- `1`: solo Windows. En SSMS, clic derecho en el servidor → **Properties → Security** → *SQL Server and Windows Authentication mode* → OK, y después clic derecho en el servidor → **Restart**.
+
+### Crear el usuario
+
+```sql
+USE master;
+GO
+CREATE LOGIN usrCursoWeb WITH PASSWORD = N'cursoweb', CHECK_POLICY = OFF;
+GO
+
+USE CursoWeb;
+GO
+CREATE USER usrCursoWeb FOR LOGIN usrCursoWeb;
+GRANT SELECT, INSERT, UPDATE ON SCHEMA::dbo TO usrCursoWeb;
+GO
+```
+
+| Pieza | Por qué |
+|---|---|
+| `LOGIN` en `master` y `USER` en `CursoWeb` | El *login* es la llave para entrar al servidor; el *usuario* es quién eres dentro de una base |
+| `CHECK_POLICY = OFF` y `cursoweb` | **Solo para tu equipo de desarrollo en el curso.** En un servidor real va `CHECK_POLICY = ON` y una contraseña fuerte |
+| `GRANT SELECT, INSERT, UPDATE` | Solo lo que la aplicación hace: sin `DELETE` (usamos eliminación lógica) y sin poder crear ni borrar tablas |
+| `ON SCHEMA::dbo` | Aplica a todas las tablas de `dbo`, también a las que crearemos después |
+
+Pruébalo: conéctate en SSMS con *SQL Server Authentication* como `usrCursoWeb`. Un `SELECT` sobre `dbo.Clientes` funciona; un `DELETE` da error de permisos.
+
+### La cadena de conexión, fuera de Git
+
+La contraseña no debe quedar en un archivo que se sube a Git. Por eso la cadena vive en un archivo aparte:
+
+1. En `Web.config`, dentro de `<configuration>`:
+   ```xml
+   <connectionStrings configSource="connectionStrings.config" />
+   ```
+2. Crea `connectionStrings.config` en la raíz del proyecto (**no se sube a Git**):
+   ```xml
+   <?xml version="1.0" encoding="utf-8"?>
+   <connectionStrings>
+     <add name="CursoWeb" connectionString="Data Source=.\SQLEXPRESS;Initial Catalog=CursoWeb;User ID=usrCursoWeb;Password=cursoweb"
+          providerName="System.Data.SqlClient"/>
+   </connectionStrings>
+   ```
+3. Crea `connectionStrings.ejemplo.config` con lo mismo pero `Password=TU_CONTRASEÑA`. Este sí se sube: es la plantilla.
+4. Revisa que tu `.gitignore` tenga la línea `connectionStrings.config` (ya viene en [`plantillas/VisualStudio.gitignore`](../plantillas/VisualStudio.gitignore)). Con `git status` no debe aparecer.
+
+- `.\SQLEXPRESS`: el punto significa *este equipo*, así la cadena funciona igual en cualquier máquina.
+- Si abres una solución descargada (por ejemplo `final/`), copia `connectionStrings.ejemplo.config` como `connectionStrings.config` y pon tu contraseña antes de correrla.
+
+## 6. Capa de Datos
+
+📖 [SqlConnection](https://learn.microsoft.com/es-es/dotnet/api/system.data.sqlclient.sqlconnection) · [SqlCommand](https://learn.microsoft.com/es-es/dotnet/api/system.data.sqlclient.sqlcommand) · [SqlCommand.Parameters](https://learn.microsoft.com/es-es/dotnet/api/system.data.sqlclient.sqlcommand.parameters) · [SqlDataReader](https://learn.microsoft.com/es-es/dotnet/api/system.data.sqlclient.sqldatareader) · [ExecuteScalar](https://learn.microsoft.com/es-es/dotnet/api/system.data.sqlclient.sqlcommand.executescalar) · [SCOPE_IDENTITY](https://learn.microsoft.com/es-es/sql/t-sql/functions/scope-identity-transact-sql) · [Instrucción `using`](https://learn.microsoft.com/es-es/dotnet/csharp/language-reference/statements/using) · [Inyección de código SQL](https://learn.microsoft.com/es-es/sql/relational-databases/security/sql-injection)
+
+Todo el SQL vive en la capa de Datos: la página y el handler nunca lo escriben.
+
+### Las carpetas
+
+Crea en tu proyecto las carpetas de las capas:
+
+```
+CursoWeb/
+├─ Modelos/     ← clases que representan un renglón de una tabla
+├─ Datos/       ← todo el SQL
+├─ Negocio/     ← reglas y validaciones
+└─ Handlers/    ← reciben las peticiones AJAX
+```
+
+### El modelo: `Modelos/Cliente.cs`
+
+```csharp
+using System;
+
+namespace CursoWeb.Modelos
+{
+    public class Cliente
+    {
+        public int ClienteId { get; set; }
+        public string Nombre { get; set; }
+        public string RFC { get; set; }
+        public string Contacto { get; set; }
+        public string Correo { get; set; }
+        public bool Activo { get; set; }
+        public DateTime FechaAlta { get; set; }
+    }
+}
+```
+
+Una propiedad por columna, con su tipo de C#: `INT` → `int`, `NVARCHAR` → `string`, `BIT` → `bool`, `DATETIME2` → `DateTime`.
+
+### Por qué parámetros: la inyección de SQL
+
+Si el SQL se arma pegando lo que escribe el usuario:
+
+```csharp
+// NUNCA así
+string sql = "SELECT ClienteId, Nombre FROM dbo.Clientes WHERE Nombre = '" + nombre + "'";
+```
+
+y alguien escribe `' OR 1=1 --` como nombre, el SQL que llega al servidor es:
+
+```sql
+SELECT
+      c.ClienteId   AS ClienteId
+    , c.Nombre      AS Nombre
+FROM
+    dbo.Clientes AS c
+WHERE
+    c.Nombre = '' OR 1=1 --';
+```
+
+Regresa **todos** los clientes: el `'` cerró el texto, `OR 1=1` siempre es verdadero y `--` comentó el resto. Con `'; DROP TABLE dbo.Clientes; --` intentaría borrar la tabla (con `usrCursoWeb` falla por permisos). Con **parámetros**, el valor viaja aparte del SQL y nunca se interpreta como código.
+
+### `Datos/ClientesDatos.cs`
+
+Por ahora solo listar e insertar; editar y eliminar son del día 3.
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using CursoWeb.Modelos;
+
+namespace CursoWeb.Datos
+{
+    public class ClientesDatos
+    {
+        private readonly string cadena = ConfigurationManager.ConnectionStrings["CursoWeb"].ConnectionString;
+
+        public List<Cliente> Listar()
+        {
+            const string sql = @"
+SELECT
+      c.ClienteId   AS ClienteId
+    , c.Nombre      AS Nombre
+    , c.RFC         AS RFC
+    , c.Contacto    AS Contacto
+    , c.Correo      AS Correo
+    , c.Activo      AS Activo
+    , c.FechaAlta   AS FechaAlta
+FROM
+    dbo.Clientes AS c
+WHERE
+    c.Activo = 1
+ORDER BY
+    c.Nombre;";
+
+            var lista = new List<Cliente>();
+            using (var cn = new SqlConnection(cadena))
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                cn.Open();
+                using (var dr = cmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        lista.Add(new Cliente
+                        {
+                            ClienteId = dr.GetInt32(dr.GetOrdinal("ClienteId")),
+                            Nombre = dr.GetString(dr.GetOrdinal("Nombre")),
+                            RFC = dr["RFC"] as string,
+                            Contacto = dr["Contacto"] as string,
+                            Correo = dr["Correo"] as string,
+                            Activo = dr.GetBoolean(dr.GetOrdinal("Activo")),
+                            FechaAlta = dr.GetDateTime(dr.GetOrdinal("FechaAlta"))
+                        });
+                    }
+                }
+            }
+            return lista;
+        }
+
+        public int Insertar(Cliente c)
+        {
+            const string sql = @"
+INSERT INTO dbo.Clientes (Nombre, RFC, Contacto, Correo)
+VALUES (@Nombre, @RFC, @Contacto, @Correo);
+
+SELECT
+    CAST(SCOPE_IDENTITY() AS INT) AS ClienteId;";
+
+            using (var cn = new SqlConnection(cadena))
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                cmd.Parameters.Add("@Nombre", SqlDbType.NVarChar, 150).Value = c.Nombre;
+                cmd.Parameters.Add("@RFC", SqlDbType.VarChar, 13).Value = (object)c.RFC ?? DBNull.Value;
+                cmd.Parameters.Add("@Contacto", SqlDbType.NVarChar, 100).Value = (object)c.Contacto ?? DBNull.Value;
+                cmd.Parameters.Add("@Correo", SqlDbType.VarChar, 150).Value = (object)c.Correo ?? DBNull.Value;
+
+                cn.Open();
+                return (int)cmd.ExecuteScalar();
+            }
+        }
+    }
+}
+```
+
+| Pieza | Para qué |
+|---|---|
+| `ConfigurationManager.ConnectionStrings["CursoWeb"]` | Lee la cadena de conexión por su `name` |
+| `@"..."` | Texto de varias líneas: el SQL queda con el mismo formato que en SSMS |
+| `using (var cn = ...)` | Cierra la conexión siempre, aunque haya error |
+| `Parameters.Add("@Nombre", SqlDbType.NVarChar, 150)` | El valor viaja aparte del SQL, con el tipo y tamaño de la columna |
+| `(object)c.RFC ?? DBNull.Value` | Si el valor es `null`, se guarda `NULL` en SQL |
+| `ExecuteReader` / `dr.Read()` | Recorre los renglones uno por uno |
+| `dr["RFC"] as string` | Lee columnas que pueden venir en `NULL` sin error |
+| `WHERE c.Activo = 1` | Los inactivos (eliminados lógicamente) no se listan |
+| `SCOPE_IDENTITY()` + `ExecuteScalar` | Regresa el `ClienteId` que SQL acaba de generar |
+
+### Probar
+
+En `Default.aspx.cs`, cambia temporalmente el `Page_Load`:
+
+```csharp
+lblFecha.Text = new CursoWeb.Datos.ClientesDatos().Listar().Count + " clientes";
+```
+
+F5 debe mostrar **2 clientes**. Si funciona, el usuario `usrCursoWeb` y la cadena de conexión también están bien. Después regresa el `Page_Load` como estaba.
