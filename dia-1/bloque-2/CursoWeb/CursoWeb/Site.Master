@@ -1,0 +1,40 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Site.master.cs" Inherits="CursoWeb.Site" %>
+
+<!DOCTYPE html>
+
+<html>
+<head runat="server">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Curso Web Forms</title>
+    <asp:ContentPlaceHolder ID="head" runat="server">
+    </asp:ContentPlaceHolder>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header>
+            <strong>Curso Web Forms</strong>
+        </header>
+
+        <nav>
+            <a href="Default.aspx">Inicio</a> |
+            <a href="Clientes.aspx">Clientes</a> |
+            <a href="Familias.aspx">Familias</a> |
+            <a href="Piezas.aspx">Piezas</a>
+        </nav>
+
+        <main>
+            <asp:ContentPlaceHolder ID="MainContent" runat="server">
+
+            </asp:ContentPlaceHolder>
+        </main>
+
+        <footer>
+            <small>Curso de ASP.NET Web Forms</small>
+        </footer>
+    </form>
+
+    <asp:ContentPlaceHolder ID="Scripts" runat="server">
+
+    </asp:ContentPlaceHolder>
+</body>
+</html>
