@@ -298,7 +298,7 @@ Escribe algo en **Nombre** y da clic en **Guardar**: aparece en la consola.
        $('#divMensaje')
            .removeClass('d-none alert-success alert-danger')
            .addClass('alert-' + tipo)
-           .html(texto);
+           .text(texto);
    }
 
    function ocultarMensaje() {
@@ -310,7 +310,7 @@ Escribe algo en **Nombre** y da clic en **Guardar**: aparece en la consola.
        const cliente = obtenerCliente();
        const errores = validarCliente(cliente);
        if (errores.length > 0) {
-           mostrarMensaje(errores.join('<br>'), 'danger');
+           mostrarMensaje(errores.join(' '), 'danger');
            return;
        }
        console.log('Se enviará al servidor:', JSON.stringify(cliente));
@@ -329,7 +329,7 @@ Escribe algo en **Nombre** y da clic en **Guardar**: aparece en la consola.
 | `.on('click', guardar)` | Ejercicio 6: `addEventListener('click', ...)` |
 | `obtenerCliente()` | Ejercicio 2: el objeto `cliente`, ahora leído de las cajas |
 | `validarCliente()` | Ejercicio 5, tal cual |
-| `errores.join('<br>')` | Ejercicio 4: arreglos |
+| `errores.join(' ')` | Ejercicio 4: arreglos |
 | `JSON.stringify(cliente)` | Ejercicio 3: lo que después se enviará al handler |
 
 ### El mensaje: `alert` y `d-none`
@@ -345,7 +345,7 @@ Escribe algo en **Nombre** y da clic en **Guardar**: aparece en la consola.
 - `d-none` se lee con la regla de la hoja de nomenclatura: `d` = display, `none` = valor. También existen `d-block`, `d-flex` y, por tamaño de pantalla, `d-md-none`.
 - El mensaje nace oculto con `d-none`. Para mostrarlo, jQuery quita `d-none` y pone el color; para ocultarlo, vuelve a poner `d-none`. Mostrar y ocultar con JavaScript casi siempre es **poner y quitar clases**.
 - `role="alert"` hace que los lectores de pantalla anuncien el mensaje.
-- `.html()` lo usamos solo con nuestros propios textos. Cuando el mensaje venga del servidor usaremos `.text()`, por seguridad.
+- **`.text()` y no `.html()`**: `.text()` muestra el texto tal cual; `.html()` lo interpreta como HTML. Si alguien captura `<img src="x" onerror="alert('hola')">` como nombre de cliente y se muestra con `.html()`, ese código se ejecuta en el navegador de quien vea la pantalla. Eso es **XSS** (*cross-site scripting*), el equivalente de la inyección de SQL del lado del navegador. Lo que viene del usuario o del servidor se muestra con `.text()`. 📖 [jQuery: `.text()`](https://api.jquery.com/text/) · [OWASP: XSS](https://owasp.org/www-community/attacks/xss/)
 
 ### Probar
 
