@@ -313,13 +313,22 @@ Escribe algo en **Nombre** y da clic en **Guardar**: aparece en la consola.
            mostrarMensaje(errores.join(' '), 'danger');
            return;
        }
+       enviarCliente(cliente);
+   }
+
+   function enviarCliente(cliente) {
+       // En el bloque 3 esta función se conecta con el servidor
        console.log('Se enviará al servidor:', JSON.stringify(cliente));
    }
 
-   function limpiar() {
+   function limpiarCampos() {
        $('#txtNombre, #txtRFC, #txtContacto, #txtCorreo').val('');
-       ocultarMensaje();
        $('#txtNombre').trigger('focus');
+   }
+
+   function limpiar() {
+       limpiarCampos();
+       ocultarMensaje();
    }
    ```
 
@@ -331,6 +340,10 @@ Escribe algo en **Nombre** y da clic en **Guardar**: aparece en la consola.
 | `validarCliente()` | Ejercicio 5, tal cual |
 | `errores.join(' ')` | Ejercicio 4: arreglos |
 | `JSON.stringify(cliente)` | Ejercicio 3: lo que después se enviará al handler |
+| `enviarCliente()` aparte de `guardar()` | Por ahora solo muestra el JSON en la consola. En el bloque 3 solo se reescribe esta función |
+| `limpiarCampos()` aparte de `limpiar()` | Después de guardar se vacían las cajas sin quitar el mensaje |
+
+Cada función hace una sola cosa: cuando el código crezca, se agrega o se cambia una función sin reescribir las demás.
 
 ### El mensaje: `alert` y `d-none`
 
@@ -923,3 +936,75 @@ F5 y en el navegador, con el puerto de tu proyecto:
    → `ok: false` con *"El nombre es obligatorio. El RFC debe tener 12 o 13 caracteres."*
 
 Si la prueba 1 responde, funcionan juntos Negocio, Datos, el usuario y la cadena de conexión.
+
+---
+
+> **Bloque 3 · AJAX y listado**
+
+## 9. Guardar con `$.ajax`
+
+📖 [jQuery: `$.ajax()`](https://api.jquery.com/jQuery.ajax/) · [jQuery: `.prop()`](https://api.jquery.com/prop/) · [MDN: Content-Type](https://developer.mozilla.org/es/docs/Web/HTTP/Reference/Headers/Content-Type) · [Chrome DevTools: Network](https://developer.chrome.com/docs/devtools/network)
+
+La página ya valida y arma el JSON (bloque 1); el handler ya lo recibe y lo guarda (bloque 2). Ahora se unen. En `js/clientes.js`, **solo se reescribe `enviarCliente`**: en el bloque 1 mostraba el JSON en la consola; ahora lo manda al handler. Lo demás no se toca.
+
+```javascript
+function enviarCliente(cliente) {
+    $('#btnGuardar').prop('disabled', true);
+
+    $.ajax({
+        url: 'Handlers/ClientesHandler.ashx?accion=guardar',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(cliente),
+        dataType: 'json'
+    })
+        .done(function (r) {
+            if (!r.ok) {
+                mostrarMensaje(r.mensaje, 'danger');
+                return;
+            }
+            mostrarMensaje(r.mensaje, 'success');
+            limpiarCampos();
+        })
+        .fail(function (xhr) {
+            mostrarMensaje('No se pudo comunicar con el servidor (' + xhr.status + ').', 'danger');
+        })
+        .always(function () {
+            $('#btnGuardar').prop('disabled', false);
+        });
+}
+```
+
+| Pieza | Para qué |
+|---|---|
+| `url: '...?accion=guardar'` | La acción va en la URL |
+| `type: 'POST'` + `contentType: 'application/json'` | El cliente viaja en el body, como JSON |
+| `data: JSON.stringify(cliente)` | El ejercicio 3 de la consola, ahora de verdad |
+| `dataType: 'json'` | jQuery convierte la respuesta en objeto; no hace falta `JSON.parse` |
+| `.done` | El servidor respondió: revisa `r.ok`, porque puede ser un error de validación |
+| `.fail` | No hubo respuesta válida: servidor caído, error 500, 405 o URL mal escrita |
+| `.always` | Corre en los dos casos: vuelve a habilitar el botón |
+| `prop('disabled', true)` | Evita que un doble clic guarde dos veces |
+
+Esto es lo que se gana con haber separado `enviarCliente` en el bloque 1: la validación y el armado del cliente no cambian, solo cómo se envía.
+
+El código después de `$.ajax` **no espera** la respuesta: la pantalla no se congela. Lo que pasa al terminar va en `.done`, `.fail` y `.always`.
+
+### Verlo en Network
+
+Con F12 → **Network** y el filtro **Fetch/XHR**, guarda un cliente y abre la petición `ClientesHandler.ashx?accion=guardar`:
+
+| Pestaña | Qué ves |
+|---|---|
+| *Headers* | `POST`, `Status Code: 200`, `Content-Type: application/json` |
+| *Payload* | El JSON que mandó la página |
+| *Response* | `{ ok, mensaje, datos }` con el `clienteId` nuevo |
+
+A diferencia del contador del día 1, no viaja la página completa ni el `__VIEWSTATE`: solo el cliente, y la página no se recarga.
+
+### Probar
+
+1. Guarda un cliente válido → mensaje verde *"Cliente guardado."* y cajas vacías.
+2. Abre `Handlers/ClientesHandler.ashx?accion=listar` → el cliente nuevo aparece.
+3. Un nombre válido y RFC `abc` → *"El RFC debe tener 12 o 13 caracteres."* Esa regla solo existe en el servidor.
+4. Doble clic rápido en **Guardar** → se guarda una sola vez.
