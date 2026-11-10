@@ -613,11 +613,14 @@ ORDER BY
                     {
                         lista.Add(new Cliente
                         {
+                            // NOT NULL en la tabla: siempre trae valor, se lee con su tipo exacto
                             ClienteId = dr.GetInt32(dr.GetOrdinal("ClienteId")),
                             Nombre = dr.GetString(dr.GetOrdinal("Nombre")),
+                            // Aceptan NULL: con GetString truena si viene NULL; "as string" lo deja en null
                             RFC = dr["RFC"] as string,
                             Contacto = dr["Contacto"] as string,
                             Correo = dr["Correo"] as string,
+                            // NOT NULL
                             Activo = dr.GetBoolean(dr.GetOrdinal("Activo")),
                             FechaAlta = dr.GetDateTime(dr.GetOrdinal("FechaAlta"))
                         });
@@ -660,16 +663,10 @@ SELECT
 | `Parameters.Add("@Nombre", SqlDbType.NVarChar, 150)` | El valor viaja aparte del SQL, con el tipo y tamaño de la columna |
 | `(object)c.RFC ?? DBNull.Value` | Si el valor es `null`, se guarda `NULL` en SQL |
 | `ExecuteReader` / `dr.Read()` | Recorre los renglones uno por uno |
-| `dr["RFC"] as string` | Lee columnas que pueden venir en `NULL` sin error |
+| `dr["RFC"] as string` | Lee columnas que aceptan `NULL` sin error. `GetString`, `GetInt32`, etc. **solo** para columnas `NOT NULL` |
 | `WHERE c.Activo = 1` | Los inactivos (eliminados lógicamente) no se listan |
 | `SCOPE_IDENTITY()` + `ExecuteScalar` | Regresa el `ClienteId` que SQL acaba de generar |
 
-### Probar
+### Cómo se prueba
 
-En `Default.aspx.cs`, cambia temporalmente el `Page_Load`:
-
-```csharp
-lblFecha.Text = new CursoWeb.Datos.ClientesDatos().Listar().Count + " clientes";
-```
-
-F5 debe mostrar **2 clientes**. Si funciona, el usuario `usrCursoWeb` y la cadena de conexión también están bien. Después regresa el `Page_Load` como estaba.
+No se prueba por separado: cuando tengamos el handler, abrir `Handlers/ClientesHandler.ashx?accion=listar` en el navegador ejecuta de una vez la capa de Negocio, la de Datos, el usuario `usrCursoWeb` y la cadena de conexión.

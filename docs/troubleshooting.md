@@ -44,6 +44,12 @@ Falta el archivo con la cadena de conexión: no se sube a Git. Copia `connection
 ## `The DELETE permission was denied`
 Es correcto: `usrCursoWeb` no tiene permiso de borrar. En el curso usamos eliminación lógica (`Activo = 0`).
 
+## `IndexOutOfRangeException` al leer una columna en la capa de Datos
+El nombre en `dr.GetOrdinal("...")` o `dr["..."]` no coincide con el alias del `SELECT`. Revisa que estén escritos igual (por ejemplo `AS Correo`, no `AS Corrreo`).
+
+## `SqlNullValueException: Data is Null`
+Estás leyendo con `GetString` (o `GetInt32`, etc.) una columna que vino en `NULL`. Para columnas que aceptan `NULL`, usa `dr["RFC"] as string`.
+
 ## Bootstrap Table no muestra datos
 - `data-field` debe coincidir **exactamente** (mayúsculas incluidas) con las propiedades del JSON.
 - Verifica que el JSON tenga la forma que espera la tabla (un arreglo de objetos).
