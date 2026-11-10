@@ -4,7 +4,7 @@
 
 | Día | Tabla |
 |---|---|
-| 2 | Base `CursoWeb` y `Clientes` |
+| 2 | Base `CursoWeb`, `Clientes` y el usuario `usrCursoWeb` |
 | 3 | `Familias` (relacionada con Clientes) |
 | 4 | `Piezas` (relacionada con Familias) |
 
@@ -16,6 +16,7 @@
 |---|---|
 | [`01-esquema.sql`](01-esquema.sql) | Base de datos y las tres tablas completas |
 | [`02-datos-prueba.sql`](02-datos-prueba.sql) | Registros de ejemplo para las tres tablas (requiere el esquema completo) |
+| [`03-usuario.sql`](03-usuario.sql) | El usuario dedicado `usrCursoWeb` con permisos mínimos (día 2). Requiere la autenticación mixta activa |
 
 ## Diagrama entidad-relación
 

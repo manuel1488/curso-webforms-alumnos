@@ -1008,3 +1008,117 @@ A diferencia del contador del día 1, no viaja la página completa ni el `__VIEW
 2. Abre `Handlers/ClientesHandler.ashx?accion=listar` → el cliente nuevo aparece.
 3. Un nombre válido y RFC `abc` → *"El RFC debe tener 12 o 13 caracteres."* Esa regla solo existe en el servidor.
 4. Doble clic rápido en **Guardar** → se guarda una sola vez.
+
+## 10. El listado con Bootstrap Table
+
+📖 [Bootstrap Table: opciones de tabla](https://bootstrap-table.com/docs/api/table-options/) · [Opciones de columna](https://bootstrap-table.com/docs/api/column-options/) · [Métodos (`refresh`)](https://bootstrap-table.com/docs/api/methods/) · [MDN: `toLocaleDateString`](https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/Date/toLocaleDateString)
+
+Aquí el código solo crece: se agregan dos funciones y dos líneas.
+
+### 1. La tabla vacía
+
+En `Clientes.aspx`, reemplaza la tabla de ejemplo (con sus renglones escritos a mano) por:
+
+```html
+<table id="tblClientes"></table>
+```
+
+### 2. Agrega `inicializarTabla()` y `formatoFecha()`
+
+Al final de `js/clientes.js`:
+
+```javascript
+function inicializarTabla() {
+    $('#tblClientes').bootstrapTable({
+        url: 'Handlers/ClientesHandler.ashx?accion=listar',
+        responseHandler: function (r) {
+            return r.ok ? r.datos : [];
+        },
+        classes: 'table table-striped table-hover',
+        escape: true,
+        search: true,
+        pagination: true,
+        pageSize: 10,
+        locale: 'es-MX',
+        columns: [
+            { field: 'nombre', title: 'Nombre', sortable: true },
+            { field: 'rfc', title: 'RFC' },
+            { field: 'contacto', title: 'Contacto' },
+            { field: 'correo', title: 'Correo' },
+            { field: 'fechaAlta', title: 'Alta', sortable: true, formatter: formatoFecha }
+        ]
+    });
+}
+
+function formatoFecha(valor) {
+    return valor ? new Date(valor).toLocaleDateString('es-MX') : '';
+}
+```
+
+### 3. Llámala al arrancar
+
+En `$(function () { ... })`, una línea más:
+
+```javascript
+$(function () {
+    $('#btnGuardar').on('click', guardar);
+    $('#btnLimpiar').on('click', limpiar);
+    inicializarTabla();
+});
+```
+
+### 4. Refresca la tabla después de guardar
+
+En `enviarCliente`, dentro de `.done`, después de `limpiarCampos();`:
+
+```javascript
+$('#tblClientes').bootstrapTable('refresh');
+```
+
+Las opciones se dividen en dos grupos, igual que en la documentación: las de la **tabla** completa y las de **cada columna**. La columna *Por defecto* te dice qué estamos cambiando y qué no.
+
+**Opciones de la tabla**
+
+| Opción | Qué hace | Por defecto | Por qué este valor |
+|---|---|---|---|
+| `url` | Dirección a la que la tabla pide los datos (con `GET`) | Ninguna | El handler con `?accion=listar`, la misma URL que probaste en el navegador |
+| `responseHandler` | Recibe la respuesta del servidor y regresa lo que la tabla va a mostrar | Usa la respuesta tal cual | El handler responde `{ ok, mensaje, datos }` y la tabla espera solo un arreglo: le pasamos `datos`. Si `ok` es `false`, la tabla queda vacía en lugar de tronar |
+| `classes` | Clases de Bootstrap de la `<table>` | `table table-bordered table-hover` | La reemplazamos por renglones alternados (`table-striped`) sin bordes, como la maqueta del día 1 |
+| `escape` | Convierte `<`, `>`, `&`… en texto para que no se interpreten como HTML | `false` | `true`, para evitar XSS (ver abajo) |
+| `search` | Muestra el cuadro **Buscar**, que filtra en todas las columnas | `false` | Le sirve al usuario y no requiere código |
+| `pagination` | Divide los renglones en páginas | `false` | Con muchos clientes la tabla sería enorme. Con menos registros que `pageSize` no se ven botones de página |
+| `pageSize` | Renglones por página | `10` | Es el valor por defecto; está escrito para que veas dónde cambiarlo |
+| `locale` | Idioma de los textos de la tabla | El del último archivo de idioma cargado | El archivo `es-MX` ya lo aplica; escribirlo deja claro cuál usamos |
+| `undefinedText` | Lo que se muestra cuando un valor viene en `null` | `-` | No la escribimos: el valor por defecto nos sirve |
+| `columns` | La lista de columnas; su orden es el orden en pantalla | Ninguna | Ver la tabla siguiente |
+
+`search` y `pagination` trabajan en el navegador: el handler manda todos los clientes y la tabla filtra y pagina. Para miles de registros se pagina en el servidor (`sidePagination: 'server'`), fuera del alcance del curso.
+
+**Opciones de cada columna**
+
+| Opción | Qué hace | Por defecto | Por qué este valor |
+|---|---|---|---|
+| `field` | Propiedad del JSON que se muestra en la columna | Ninguno | Debe coincidir **exacto**, en camelCase. Si escribes `Nombre` en lugar de `nombre`, la columna sale con `-` en todos los renglones, sin ningún error |
+| `title` | Texto del encabezado | Vacío | Lo que lee el usuario; puede ser distinto de `field` (`fechaAlta` → *Alta*) |
+| `sortable` | Permite ordenar al dar clic en el encabezado | `false` | Solo en *Nombre* y *Alta*, las que tiene sentido ordenar |
+| `formatter` | Función que transforma el valor antes de mostrarlo | Ninguna | `formatoFecha` convierte `2026-11-09T20:44:26` en `9/11/2026` |
+
+Y `$('#tblClientes').bootstrapTable('refresh')` vuelve a pedir la lista al handler: el cliente nuevo aparece sin recargar la página.
+
+### `escape: true`
+
+Bootstrap Table **no escapa el HTML por defecto** (la opción `escape` viene en `false`). Sin `escape: true`, un cliente llamado `<b>Prueba</b>` se vería en negritas, y uno con `<img onerror=...>` ejecutaría código: el mismo XSS de `.text()`. Cada vez que muestres datos del usuario, revisa si se escapan.
+
+### Probar
+
+1. Abre `Clientes.aspx` → la tabla con tus clientes, el cuadro **Buscar** y el pie *"Mostrando 1 a N de N filas"*.
+2. Guarda un cliente nuevo → aparece en la tabla sin recargar.
+3. Busca por nombre y ordena por **Nombre** y por **Alta**.
+4. Un cliente sin contacto ni correo → esas columnas muestran `-`.
+
+> Para pensar: si ejecutaste dos veces el `INSERT` de prueba, verás clientes duplicados. ¿Qué regla agregarías para evitarlo, y en qué capa?
+
+### Al terminar el día
+
+1. Guarda tu avance: `git add .`, `git commit -m "Día 2: alta y listado de clientes"` y `git push`.
+2. En el repo del curso: `git pull origin main` para traer `dia-2/final/`. Para correrla, copia `connectionStrings.ejemplo.config` como `connectionStrings.config` y pon tu contraseña.
