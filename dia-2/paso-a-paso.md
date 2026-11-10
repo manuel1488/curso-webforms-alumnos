@@ -670,3 +670,256 @@ SELECT
 ### Cómo se prueba
 
 No se prueba por separado: cuando tengamos el handler, abrir `Handlers/ClientesHandler.ashx?accion=listar` en el navegador ejecuta de una vez la capa de Negocio, la de Datos, el usuario `usrCursoWeb` y la cadena de conexión.
+
+## 7. Capa de Negocio
+
+Aquí viven las reglas: recibe lo que manda la página, lo limpia, lo vuelve a validar y decide si llama a Datos. La validación de JavaScript es comodidad; esta es la que manda, porque alguien puede saltarse el navegador.
+
+### `Modelos/Respuesta.cs`
+
+La forma `{ ok, mensaje, datos }` de todas las respuestas, como clase de C#:
+
+```csharp
+namespace CursoWeb.Modelos
+{
+    public class Respuesta
+    {
+        public bool Ok { get; set; }
+        public string Mensaje { get; set; }
+        public object Datos { get; set; }
+
+        public static Respuesta Exito(string mensaje, object datos = null)
+        {
+            return new Respuesta { Ok = true, Mensaje = mensaje, Datos = datos };
+        }
+
+        public static Respuesta Error(string mensaje)
+        {
+            return new Respuesta { Ok = false, Mensaje = mensaje };
+        }
+    }
+}
+```
+
+### `Negocio/ClientesNegocio.cs`
+
+```csharp
+using System.Collections.Generic;
+using CursoWeb.Datos;
+using CursoWeb.Modelos;
+
+namespace CursoWeb.Negocio
+{
+    public class ClientesNegocio
+    {
+        private readonly ClientesDatos datos = new ClientesDatos();
+
+        public Respuesta Listar()
+        {
+            return Respuesta.Exito("", datos.Listar());
+        }
+
+        public Respuesta Guardar(Cliente c)
+        {
+            Normalizar(c);
+
+            var errores = Validar(c);
+            if (errores.Count > 0)
+            {
+                return Respuesta.Error(string.Join(" ", errores));
+            }
+
+            c.ClienteId = datos.Insertar(c);
+            return Respuesta.Exito("Cliente guardado.", c);
+        }
+
+        private static void Normalizar(Cliente c)
+        {
+            c.Nombre = Limpiar(c.Nombre);
+            c.RFC = Limpiar(c.RFC)?.ToUpper();
+            c.Contacto = Limpiar(c.Contacto);
+            c.Correo = Limpiar(c.Correo);
+        }
+
+        private static string Limpiar(string valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+            {
+                return null;
+            }
+            return valor.Trim();
+        }
+
+        private static List<string> Validar(Cliente c)
+        {
+            var errores = new List<string>();
+
+            if (c.Nombre == null)
+            {
+                errores.Add("El nombre es obligatorio.");
+            }
+            else if (c.Nombre.Length > 150)
+            {
+                errores.Add("El nombre no puede pasar de 150 caracteres.");
+            }
+
+            if (c.RFC != null && (c.RFC.Length < 12 || c.RFC.Length > 13))
+            {
+                errores.Add("El RFC debe tener 12 o 13 caracteres.");
+            }
+
+            if (c.Contacto != null && c.Contacto.Length > 100)
+            {
+                errores.Add("El contacto no puede pasar de 100 caracteres.");
+            }
+
+            if (c.Correo != null && (!c.Correo.Contains("@") || c.Correo.Length > 150))
+            {
+                errores.Add("El correo no es válido.");
+            }
+
+            return errores;
+        }
+    }
+}
+```
+
+| Pieza | Para qué |
+|---|---|
+| `Normalizar` | Quita espacios y convierte lo vacío en `null`, para que en SQL quede `NULL` y no `''`. El RFC queda en mayúsculas |
+| `Validar` | Las reglas de `validarCliente()` más las que el navegador no revisa (largo del RFC y del contacto) |
+| `Respuesta.Error` / `Respuesta.Exito` | Negocio decide si salió bien o mal; el handler solo lo convierte a JSON |
+| `?.ToUpper()` | Si `RFC` es `null`, no truena: `?.` solo llama a `ToUpper` cuando hay valor |
+
+## 8. Handler `.ashx`
+
+📖 [IHttpHandler](https://learn.microsoft.com/es-es/dotnet/api/system.web.ihttphandler) · [HttpRequest.InputStream](https://learn.microsoft.com/es-es/dotnet/api/system.web.httprequest.inputstream) · [Newtonsoft: Serialization Settings](https://www.newtonsoft.com/json/help/html/SerializationSettings.htm) · [MDN: métodos HTTP](https://developer.mozilla.org/es/docs/Web/HTTP/Reference/Methods) · [MDN: 405](https://developer.mozilla.org/es/docs/Web/HTTP/Reference/Status/405)
+
+El handler es la puerta de entrada del servidor para AJAX: no tiene página, ni `ViewState`, ni ciclo de vida. Recibe la petición, llama a Negocio y escribe JSON.
+
+1. Clic derecho en la carpeta `Handlers` → *Agregar → Nuevo elemento →* **Controlador genérico**, nombre `ClientesHandler.ashx`.
+2. Reemplaza el contenido de `ClientesHandler.ashx.cs`:
+
+```csharp
+using System;
+using System.IO;
+using System.Web;
+using CursoWeb.Modelos;
+using CursoWeb.Negocio;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+
+namespace CursoWeb.Handlers
+{
+    public class ClientesHandler : IHttpHandler
+    {
+        private static readonly JsonSerializerSettings Json = new JsonSerializerSettings
+        {
+            ContractResolver = new CamelCasePropertyNamesContractResolver(),
+            DateFormatString = "yyyy-MM-ddTHH:mm:ss"
+        };
+
+        public void ProcessRequest(HttpContext context)
+        {
+            context.Response.ContentType = "application/json";
+            Respuesta respuesta;
+
+            try
+            {
+                var negocio = new ClientesNegocio();
+                switch (context.Request.QueryString["accion"])
+                {
+                    case "listar":
+                        respuesta = negocio.Listar();
+                        break;
+
+                    case "guardar":
+                        if (context.Request.HttpMethod != "POST")
+                        {
+                            context.Response.StatusCode = 405;
+                            respuesta = Respuesta.Error("Para guardar se usa POST.");
+                            break;
+                        }
+
+                        var cliente = LeerCuerpo<Cliente>(context);
+                        respuesta = cliente == null
+                            ? Respuesta.Error("No llegaron los datos del cliente.")
+                            : negocio.Guardar(cliente);
+                        break;
+
+                    default:
+                        respuesta = Respuesta.Error("Acción no válida.");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                respuesta = Respuesta.Error(context.IsDebuggingEnabled
+                    ? ex.Message
+                    : "Ocurrió un error en el servidor.");
+            }
+
+            context.Response.Write(JsonConvert.SerializeObject(respuesta, Json));
+        }
+
+        private static T LeerCuerpo<T>(HttpContext context)
+        {
+            using (var lector = new StreamReader(context.Request.InputStream))
+            {
+                return JsonConvert.DeserializeObject<T>(lector.ReadToEnd(), Json);
+            }
+        }
+
+        public bool IsReusable => false;
+    }
+}
+```
+
+| Pieza | Para qué |
+|---|---|
+| `IHttpHandler` / `ProcessRequest` | Recibe la petición y escribe la respuesta |
+| `ContentType = "application/json"` | Le dice al navegador que la respuesta es JSON |
+| `QueryString["accion"]` | La acción va en la URL. Un handler por catálogo y una acción por operación |
+| `HttpMethod != "POST"` → `405` | Guardar nunca por `GET` |
+| `LeerCuerpo<T>` | Lee el body completo y lo convierte al objeto; sirve también para Familias y Piezas |
+| `try / catch` con `IsDebuggingEnabled` | En desarrollo ves el error real; publicado, un mensaje genérico |
+| `IsReusable => false` | Cada petición usa una instancia nueva |
+
+### `JsonSerializerSettings`
+
+La configuración de cómo Newtonsoft convierte entre C# y JSON. Se crea una sola vez y se reutiliza:
+
+| Propiedad | Qué hace |
+|---|---|
+| `ContractResolver = new CamelCasePropertyNamesContractResolver()` | Propiedades en camelCase (`ClienteId` → `clienteId`), igual que en JavaScript |
+| `DateFormatString = "yyyy-MM-ddTHH:mm:ss"` | Fechas en formato ISO 8601, que JavaScript entiende |
+
+Al leer, Newtonsoft no distingue mayúsculas: `clienteId` en el JSON llena `ClienteId` en C#.
+
+### `GET` y `POST`
+
+| | `GET` | `POST` |
+|---|---|---|
+| Para qué | Consultar (`listar`) | Crear o cambiar (`guardar`) |
+| Dónde van los datos | En la URL | En el **body** de la petición |
+
+Los datos de un `GET` quedan en el historial y en los logs del servidor, y tienen límite de tamaño. Por eso la acción va en la URL y el cliente en el body, como el mismo `JSON.stringify(cliente)` del ejercicio 3.
+
+### Probar
+
+F5 y en el navegador, con el puerto de tu proyecto:
+
+1. `/Handlers/ClientesHandler.ashx?accion=listar` → el JSON con tus clientes.
+2. `/Handlers/ClientesHandler.ashx?accion=guardar` → **405**: *"Para guardar se usa POST."*
+3. En `Clientes.aspx`, F12 → Console:
+   ```javascript
+   $.ajax({
+       url: 'Handlers/ClientesHandler.ashx?accion=guardar',
+       type: 'POST',
+       contentType: 'application/json',
+       data: JSON.stringify({ nombre: '   ', rfc: 'abc' })
+   }).done(r => console.log(r));
+   ```
+   → `ok: false` con *"El nombre es obligatorio. El RFC debe tener 12 o 13 caracteres."*
+
+Si la prueba 1 responde, funcionan juntos Negocio, Datos, el usuario y la cadena de conexión.
