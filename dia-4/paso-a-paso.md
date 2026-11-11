@@ -352,3 +352,953 @@ namespace CursoWeb.Handlers
 | `Invalid object name 'dbo.Piezas'` | Que la tabla esté creada en la base `CursoWeb` |
 | `The SELECT permission was denied` | Que el `GRANT` del día 2 se haya ejecutado en la base `CursoWeb` |
 | `datos` viene vacío (`[]`) | Que hayas insertado piezas con `Activo = 1` y con un `FamiliaId` que exista |
+
+---
+
+> **Bloque 2 · Combos dependientes y CRUD de Piezas**
+
+Ahora la pantalla de Piezas. Lo nuevo del día son los **combos dependientes**: el combo de familias solo muestra las familias del cliente que elegiste. Dos ideas para entenderlos:
+
+- Al cambiar el cliente, la página le **pregunta al servidor** (con AJAX) por las familias de ese cliente y llena el segundo combo. Es lo que en WinForms harías en el evento `SelectedIndexChanged` del primer `ComboBox`.
+- AJAX es **asíncrono**: la respuesta llega después, y mientras tanto el código sigue. Por eso, al editar una pieza, su familia se selecciona *cuando llega la respuesta*, no antes.
+
+## 6. Combos dependientes: el servidor
+
+📖 [HttpRequest.QueryString](https://learn.microsoft.com/es-es/dotnet/api/system.web.httprequest.querystring) · [Int32.TryParse](https://learn.microsoft.com/es-es/dotnet/api/system.int32.tryparse) · [WHERE](https://learn.microsoft.com/es-es/sql/t-sql/queries/where-transact-sql) · [ORDER BY](https://learn.microsoft.com/es-es/sql/t-sql/queries/select-order-by-clause-transact-sql)
+
+Se empieza por el servidor: así, cuando se escriba el JavaScript, ya hay a quién llamar. Pide las familias de **un** cliente: una acción nueva en el catálogo de Familias.
+
+### Datos: `ListarPorCliente`
+
+**Agregar** a `Datos/FamiliasDatos.cs`, después de `Listar`:
+
+```csharp
+public List<Familia> ListarPorCliente(int clienteId)
+{
+    const string sql = @"
+SELECT
+      f.FamiliaId     AS FamiliaId
+    , f.ClienteId     AS ClienteId
+    , c.Nombre        AS ClienteNombre
+    , f.Nombre        AS Nombre
+    , f.Descripcion   AS Descripcion
+    , f.Activo        AS Activo
+    , f.FechaAlta     AS FechaAlta
+FROM
+    dbo.Familias AS f
+INNER JOIN
+    dbo.Clientes AS c ON c.ClienteId = f.ClienteId
+WHERE
+    f.ClienteId = @ClienteId
+    AND f.Activo = 1
+ORDER BY
+    f.Nombre;";
+
+    var lista = new List<Familia>();
+    using (var cn = new SqlConnection(cadena))
+    using (var cmd = new SqlCommand(sql, cn))
+    {
+        cmd.Parameters.Add("@ClienteId", SqlDbType.Int).Value = clienteId;
+
+        cn.Open();
+        using (var dr = cmd.ExecuteReader())
+        {
+            while (dr.Read())
+            {
+                lista.Add(new Familia
+                {
+                    // NOT NULL en la tabla: se leen con su tipo exacto
+                    FamiliaId = dr.GetInt32(dr.GetOrdinal("FamiliaId")),
+                    ClienteId = dr.GetInt32(dr.GetOrdinal("ClienteId")),
+                    ClienteNombre = dr.GetString(dr.GetOrdinal("ClienteNombre")),
+                    Nombre = dr.GetString(dr.GetOrdinal("Nombre")),
+                    // Acepta NULL
+                    Descripcion = dr["Descripcion"] as string,
+                    // NOT NULL
+                    Activo = dr.GetBoolean(dr.GetOrdinal("Activo")),
+                    FechaAlta = dr.GetDateTime(dr.GetOrdinal("FechaAlta"))
+                });
+            }
+        }
+    }
+    return lista;
+}
+```
+
+| Pieza | Qué hace | Por qué |
+|---|---|---|
+| `WHERE f.ClienteId = @ClienteId` | Solo las familias de ese cliente | El valor llega como **parámetro**, nunca pegado al texto del SQL: así se evita la inyección de SQL, igual que en todo el curso |
+| `AND f.Activo = 1` | Solo las familias activas | La eliminación es lógica: las eliminadas siguen en la tabla y no deben ofrecerse |
+| `ORDER BY f.Nombre` | El combo sale en orden alfabético | Todas son del mismo cliente: ya no hace falta ordenar también por cliente |
+| `cmd.Parameters.Add("@ClienteId", SqlDbType.Int)` | Pasa el `clienteId` al SQL | Se agrega antes de `cn.Open()`, como en `Insertar` |
+
+Es `Listar` con un `WHERE` y un parámetro. El ciclo que lee los renglones es el mismo; por ahora se repite, como el resto del código de Datos.
+
+### Negocio: `ListarPorCliente`
+
+**Agregar** a `Negocio/FamiliasNegocio.cs`, después de `Listar`:
+
+```csharp
+public Respuesta ListarPorCliente(int clienteId)
+{
+    if (clienteId <= 0)
+    {
+        return Respuesta.Error("Selecciona un cliente.");
+    }
+    return Respuesta.Exito("", datos.ListarPorCliente(clienteId));
+}
+```
+
+Negocio revisa antes de pedirle datos a Datos: si no llegó un cliente válido, responde con un error claro en lugar de consultar la base con un valor que no tiene sentido.
+
+### Handler: la acción `listarPorCliente`
+
+**Agregar** al `switch` de `Handlers/FamiliasHandler.ashx.cs`, entre los casos `listar` y `guardar`:
+
+```csharp
+case "listarPorCliente":
+    int clienteId;
+    respuesta = int.TryParse(context.Request.QueryString["clienteId"], out clienteId)
+        ? negocio.ListarPorCliente(clienteId)
+        : Respuesta.Error("Falta el cliente.");
+    break;
+```
+
+| Pieza | Qué hace | Por qué |
+|---|---|---|
+| `QueryString["clienteId"]` | Lee `&clienteId=3` de la URL | Es un `GET`: los datos viajan en la URL, no en el cuerpo |
+| `int.TryParse(..., out clienteId)` | Convierte el texto a número y dice si pudo | El valor de la URL siempre es **texto**, y puede faltar o no ser un número. `TryParse` regresa `false` en lugar de lanzar un error |
+| `condición ? A : B` | Si se pudo convertir, pide la lista; si no, responde un error | El mismo operador que ya usa `guardar` |
+| `"listarPorCliente"` | El nombre de la acción | El `switch` compara texto **con mayúsculas y minúsculas**: debe escribirse igual aquí y en el JavaScript |
+
+Pruébalo en el navegador: `Handlers/FamiliasHandler.ashx?accion=listarPorCliente&clienteId=1` debe responder con las familias activas del cliente 1.
+
+## 7. La página `Piezas.aspx`
+
+📖 [Bootstrap: Select](https://getbootstrap.com/docs/5.3/forms/select/) · [MDN: `<select>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/select) · [MDN: `<textarea>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/textarea) · [Bootstrap: Modal](https://getbootstrap.com/docs/5.3/components/modal/)
+
+**Reemplazar** todo el contenido de `Piezas.aspx` (hoy solo tiene un `<h1>`) por:
+
+```aspx
+<%@ Page Title="Piezas" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="Piezas.aspx.cs" Inherits="CursoWeb.Piezas" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
+</asp:Content>
+<asp:Content ID="Content2" ContentPlaceHolderID="MainContent" runat="server">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Piezas</h1>
+        <button type="button" id="btnNuevo" class="btn btn-primary">Nueva pieza</button>
+    </div>
+    <div id="divMensaje" class="alert d-none" role="alert"></div>
+
+    <table id="tblPiezas"></table>
+
+    <!-- Modal: alta y edición -->
+    <div class="modal fade" id="mdlPieza" tabindex="-1" aria-labelledby="lblTituloFormulario" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 id="lblTituloFormulario" class="modal-title">Nueva pieza</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="divMensajeModal" class="alert d-none" role="alert"></div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="cboCliente" class="form-label">Cliente</label>
+                            <select id="cboCliente" class="form-select"></select>
+                        </div>
+                        <div class="col-12">
+                            <label for="cboFamilia" class="form-label">Familia</label>
+                            <select id="cboFamilia" class="form-select" disabled></select>
+                        </div>
+                        <div class="col-12">
+                            <label for="txtNumeroParte" class="form-label">Número de parte</label>
+                            <input type="text" id="txtNumeroParte" class="form-control" maxlength="50" />
+                        </div>
+                        <div class="col-12">
+                            <label for="txtDescripcion" class="form-label">Descripción</label>
+                            <textarea id="txtDescripcion" class="form-control" rows="3" maxlength="250"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="btnGuardar" class="btn btn-primary">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: confirmar eliminación -->
+    <div class="modal fade" id="mdlConfirmar" tabindex="-1" aria-labelledby="lblTituloConfirmar" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 id="lblTituloConfirmar" class="modal-title">Eliminar pieza</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="lblConfirmar" class="mb-0"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="btnConfirmarEliminar" class="btn btn-danger">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</asp:Content>
+<asp:Content ID="Content3" ContentPlaceHolderID="Scripts" runat="server">
+    <script src="js/piezas.js"></script>
+</asp:Content>
+```
+
+| `Familias.aspx` | `Piezas.aspx` |
+|---|---|
+| Título, botón y tabla de Familias (`tblFamilias`, `btnNuevo`) | Los de Piezas: `tblPiezas`, y el modal se llama `mdlPieza` |
+| Un combo (`cboCliente`), nombre y descripción | **Dos combos**: `cboCliente` y `cboFamilia`. Después, `txtNumeroParte` (`maxlength="50"`, como la columna) y `txtDescripcion` |
+| El combo de cliente arranca con opciones | `cboFamilia` lleva el atributo **`disabled`**: no hay familias que mostrar hasta que se elija un cliente |
+| Mismos modales de Bootstrap, mismo botón de eliminar | Iguales. El script es `js/piezas.js` |
+
+La descripción de Piezas es **obligatoria** (en la tabla es `NOT NULL`), a diferencia de la de Familias.
+
+## 8. `piezas.js`: los combos y el listado
+
+📖 [jQuery: `.on()`](https://api.jquery.com/on/) · [jQuery: evento `change`](https://api.jquery.com/change/) · [jQuery: `$.ajax()`](https://api.jquery.com/jQuery.ajax/) · [jQuery: `.prop()`](https://api.jquery.com/prop/) · [jQuery: `.append()`](https://api.jquery.com/append/) · [Bootstrap Table: métodos](https://bootstrap-table.com/docs/api/methods/) · [Bootstrap Table: opciones de columna](https://bootstrap-table.com/docs/api/column-options/)
+
+**Archivo nuevo:** clic derecho en la carpeta `js` → *Agregar → Nuevo elemento → Archivo JavaScript* → `piezas.js`. Contenido completo:
+
+```javascript
+let piezaIdEditando = 0;
+let modalPieza;
+
+$(function () {
+    modalPieza = new bootstrap.Modal('#mdlPieza');
+
+    $('#btnNuevo').on('click', nuevo);
+    $('#cboCliente').on('change', cambiarCliente);
+    $('#mdlPieza').on('shown.bs.modal', function () {
+        $('#cboCliente').trigger('focus');
+    });
+
+    cargarClientes();
+    inicializarTabla();
+});
+
+// Llena el combo con los clientes activos, reutilizando el handler de Clientes
+function cargarClientes() {
+    $.ajax({
+        url: 'Handlers/ClientesHandler.ashx?accion=listar',
+        type: 'GET',
+        dataType: 'json'
+    })
+        .done(function (r) {
+            const $combo = $('#cboCliente');
+            $combo.empty();
+            $combo.append($('<option>').val('').text('Selecciona un cliente'));
+            if (r.ok) {
+                r.datos.forEach(function (c) {
+                    $combo.append($('<option>').val(c.clienteId).text(c.nombre));
+                });
+            }
+        })
+        .fail(function (xhr) {
+            mostrarMensaje('No se pudieron cargar los clientes (' + xhr.status + ').', 'danger');
+        });
+}
+
+// Al cambiar el cliente, se piden al servidor sus familias
+function cambiarCliente() {
+    cargarFamilias(Number($('#cboCliente').val()) || 0, 0);
+}
+
+// Llena el combo de familias con las del cliente. Si llega familiaId (al editar), la deja seleccionada
+function cargarFamilias(clienteId, familiaId) {
+    const $combo = $('#cboFamilia');
+    $combo.empty();
+    $combo.append($('<option>').val('').text('Selecciona una familia'));
+    $combo.prop('disabled', true);
+    ocultarMensaje('#divMensajeModal');
+    if (!clienteId) {
+        return;
+    }
+
+    $.ajax({
+        url: 'Handlers/FamiliasHandler.ashx?accion=listarPorCliente&clienteId=' + clienteId,
+        type: 'GET',
+        dataType: 'json'
+    })
+        .done(function (r) {
+            // Si el cliente cambió mientras llegaba la respuesta, esta ya no sirve
+            if (clienteId !== (Number($('#cboCliente').val()) || 0)) {
+                return;
+            }
+            if (!r.ok) {
+                mostrarMensaje(r.mensaje, 'danger', '#divMensajeModal');
+                return;
+            }
+            if (r.datos.length === 0) {
+                mostrarMensaje('Este cliente no tiene familias activas.', 'danger', '#divMensajeModal');
+                return;
+            }
+            r.datos.forEach(function (f) {
+                $combo.append($('<option>').val(f.familiaId).text(f.nombre));
+            });
+            $combo.prop('disabled', false);
+            if (familiaId) {
+                $combo.val(familiaId);
+            }
+        })
+        .fail(function (xhr) {
+            mostrarMensaje('No se pudieron cargar las familias (' + xhr.status + ').', 'danger', '#divMensajeModal');
+        });
+}
+
+function mostrarMensaje(texto, tipo, contenedor = '#divMensaje') {
+    $(contenedor)
+        .removeClass('d-none alert-success alert-danger')
+        .addClass('alert-' + tipo)
+        .text(texto);
+}
+
+function ocultarMensaje(contenedor = '#divMensaje') {
+    $(contenedor).addClass('d-none').empty();
+}
+
+function nuevo() {
+    limpiarCampos();
+    ocultarMensaje();
+    ocultarMensaje('#divMensajeModal');
+    modalPieza.show();
+}
+
+function limpiarCampos() {
+    $('#cboCliente, #txtNumeroParte, #txtDescripcion').val('');
+    cargarFamilias(0, 0);
+    piezaIdEditando = 0;
+    $('#lblTituloFormulario').text('Nueva pieza');
+}
+
+function inicializarTabla() {
+    $('#tblPiezas').bootstrapTable({
+        url: 'Handlers/PiezasHandler.ashx?accion=listar',
+        responseHandler: function (r) {
+            return r.ok ? r.datos : [];
+        },
+        classes: 'table table-striped table-hover',
+        escape: true,
+        search: true,
+        pagination: true,
+        pageSize: 10,
+        locale: 'es-MX',
+        columns: [
+            { field: 'clienteNombre', title: 'Cliente', sortable: true },
+            { field: 'familiaNombre', title: 'Familia', sortable: true },
+            { field: 'numeroParte', title: 'Número de parte', sortable: true },
+            { field: 'descripcion', title: 'Descripción' },
+            { field: 'fechaAlta', title: 'Alta', sortable: true, formatter: formatoFecha }
+        ]
+    });
+}
+
+function formatoFecha(valor) {
+    return valor ? new Date(valor).toLocaleDateString('es-MX') : '';
+}
+
+```
+
+| Función | Qué hace | Por qué |
+|---|---|---|
+| Arranque | Crea el modal, enlaza el botón y el **`change`** del combo de cliente, y carga clientes y tabla | `.on('change', ...)` ejecuta `cambiarCliente` cada vez que el usuario elige otro cliente |
+| `cargarClientes` | Llena el combo de clientes | Igual que en Familias: se reutiliza `ClientesHandler.ashx?accion=listar` |
+| `cambiarCliente` | Toma el cliente elegido y pide sus familias | `Number(...) \|\| 0` convierte el valor del `<select>` (siempre texto) en número, y deja `0` si no se eligió nada |
+| **`cargarFamilias`** | Vacía el combo de familias, lo deshabilita, pide las del cliente y las agrega | Es lo nuevo del día. Lo detallamos abajo |
+| `limpiarCampos` | Limpia el formulario y llama `cargarFamilias(0, 0)` | Con cliente `0` el combo de familias queda vacío y deshabilitado |
+| `inicializarTabla` | Columnas: cliente, familia, número de parte, descripción y alta | Los nombres salen del JSON del listado (`familiaNombre`, `numeroParte`…) |
+
+**Lo nuevo: `cargarFamilias(clienteId, familiaId)`**
+
+| Pieza | Para qué |
+|---|---|
+| `$combo.empty()` y la opción *"Selecciona una familia"* | Deja el combo como nuevo antes de llenarlo, para no acumular las familias del cliente anterior |
+| `$combo.prop('disabled', true)` | Mientras no lleguen las familias, no se puede elegir nada |
+| `if (!clienteId) { return; }` | Sin cliente elegido no hay nada que pedir |
+| `...accion=listarPorCliente&clienteId=` + `clienteId` | La petición al handler que acabamos de agregar |
+| `if (clienteId !== ...) { return; }` dentro de `.done` | **Respuesta tardía:** si el usuario cambió de cliente mientras llegaba la respuesta, esa lista ya no corresponde. Se descarta |
+| `r.datos.length === 0` | Un cliente sin familias activas: se avisa en lugar de dejar el combo vacío sin explicación |
+| `$combo.val(familiaId)` | Se usa al **editar**: deja seleccionada la familia de la pieza, pero hasta que ya están cargadas las opciones. Hoy llega `0`: no hace nada |
+| `.fail(...)` | Si el servidor no responde, el mensaje dice el código de estado |
+
+### Probar los combos
+1. Ejecuta y abre **Piezas**: la tabla muestra las piezas con su cliente y su familia.
+2. **Nueva pieza**: el combo de familia está deshabilitado.
+3. Elige un cliente: el combo de familia se habilita con **solo** sus familias.
+4. Cambia a otro cliente: la lista de familias cambia.
+5. Cierra el modal y ábrelo otra vez: el combo de familia vuelve a estar deshabilitado.
+
+## 9. CRUD de Piezas: el servidor
+
+📖 [SqlCommand.ExecuteScalar](https://learn.microsoft.com/es-es/dotnet/api/system.data.sqlclient.sqlcommand.executescalar) · [SCOPE_IDENTITY](https://learn.microsoft.com/es-es/sql/t-sql/functions/scope-identity-transact-sql) · [UPDATE (Transact-SQL)](https://learn.microsoft.com/es-es/sql/t-sql/queries/update-transact-sql) · [SqlCommand.ExecuteNonQuery](https://learn.microsoft.com/es-es/dotnet/api/system.data.sqlclient.sqlcommand.executenonquery) · [COUNT (Transact-SQL)](https://learn.microsoft.com/es-es/sql/t-sql/functions/count-transact-sql) · [String.IsNullOrWhiteSpace](https://learn.microsoft.com/es-es/dotnet/api/system.string.isnullorwhitespace) · [String.Trim](https://learn.microsoft.com/es-es/dotnet/api/system.string.trim) · [IHttpHandler](https://learn.microsoft.com/es-es/dotnet/api/system.web.ihttphandler) · [HttpRequest.InputStream](https://learn.microsoft.com/es-es/dotnet/api/system.web.httprequest.inputstream) · [MDN: métodos HTTP](https://developer.mozilla.org/es/docs/Web/HTTP/Reference/Methods) · [MDN: 405](https://developer.mozilla.org/es/docs/Web/HTTP/Reference/Status/405)
+
+Falta guardar, editar y eliminar, y la regla nueva del día: **que no se repita el número de parte**. Es el mismo recorrido de Familias: se empieza por el servidor.
+
+### Datos
+
+**Agregar** a `Datos/PiezasDatos.cs`, después de `Listar`:
+
+```csharp
+public int Insertar(Pieza p)
+{
+    const string sql = @"
+INSERT INTO dbo.Piezas (FamiliaId, NumeroParte, Descripcion)
+VALUES (@FamiliaId, @NumeroParte, @Descripcion);
+
+SELECT
+    CAST(SCOPE_IDENTITY() AS INT) AS PiezaId;";
+
+    using (var cn = new SqlConnection(cadena))
+    using (var cmd = new SqlCommand(sql, cn))
+    {
+        cmd.Parameters.Add("@FamiliaId", SqlDbType.Int).Value = p.FamiliaId;
+        cmd.Parameters.Add("@NumeroParte", SqlDbType.VarChar, 50).Value = p.NumeroParte;
+        cmd.Parameters.Add("@Descripcion", SqlDbType.NVarChar, 250).Value = p.Descripcion;
+
+        cn.Open();
+        return (int)cmd.ExecuteScalar();
+    }
+}
+
+public int Actualizar(Pieza p)
+{
+    const string sql = @"
+UPDATE p
+SET
+      p.FamiliaId     = @FamiliaId
+    , p.NumeroParte   = @NumeroParte
+    , p.Descripcion   = @Descripcion
+FROM
+    dbo.Piezas AS p
+WHERE
+    p.PiezaId = @PiezaId
+    AND p.Activo = 1;";
+
+    using (var cn = new SqlConnection(cadena))
+    using (var cmd = new SqlCommand(sql, cn))
+    {
+        cmd.Parameters.Add("@PiezaId", SqlDbType.Int).Value = p.PiezaId;
+        cmd.Parameters.Add("@FamiliaId", SqlDbType.Int).Value = p.FamiliaId;
+        cmd.Parameters.Add("@NumeroParte", SqlDbType.VarChar, 50).Value = p.NumeroParte;
+        cmd.Parameters.Add("@Descripcion", SqlDbType.NVarChar, 250).Value = p.Descripcion;
+
+        cn.Open();
+        return cmd.ExecuteNonQuery();
+    }
+}
+
+public int Desactivar(int piezaId)
+{
+    const string sql = @"
+UPDATE p
+SET
+    p.Activo = 0
+FROM
+    dbo.Piezas AS p
+WHERE
+    p.PiezaId = @PiezaId
+    AND p.Activo = 1;";
+
+    using (var cn = new SqlConnection(cadena))
+    using (var cmd = new SqlCommand(sql, cn))
+    {
+        cmd.Parameters.Add("@PiezaId", SqlDbType.Int).Value = piezaId;
+        cn.Open();
+        return cmd.ExecuteNonQuery();
+    }
+}
+
+// Cuenta las piezas con ese número de parte, activas o eliminadas, sin contar la que se está editando
+public bool ExisteNumeroParte(string numeroParte, int piezaId)
+{
+    const string sql = @"
+SELECT
+    COUNT(*) AS Total
+FROM
+    dbo.Piezas AS p
+WHERE
+    p.NumeroParte = @NumeroParte
+    AND p.PiezaId <> @PiezaId;";
+
+    using (var cn = new SqlConnection(cadena))
+    using (var cmd = new SqlCommand(sql, cn))
+    {
+        cmd.Parameters.Add("@NumeroParte", SqlDbType.VarChar, 50).Value = numeroParte;
+        cmd.Parameters.Add("@PiezaId", SqlDbType.Int).Value = piezaId;
+
+        cn.Open();
+        return (int)cmd.ExecuteScalar() > 0;
+    }
+}
+```
+
+| Método | Qué cambia respecto a `FamiliasDatos.cs` |
+|---|---|
+| `Insertar` | `@NumeroParte` es `SqlDbType.VarChar, 50` (la columna es `VARCHAR`) y `@Descripcion` es `NVarChar, 250`. La descripción es obligatoria, así que ya no lleva `(object)... ?? DBNull.Value` |
+| `Actualizar` | Actualiza `FamiliaId`: una pieza se puede pasar a otra familia. No actualiza el cliente, porque la pieza no lo guarda |
+| `Desactivar` | `PiezaId` en lugar de `FamiliaId`; lo demás, igual |
+| **`ExisteNumeroParte`** | Nuevo. Lo explicamos abajo |
+
+**Lo nuevo: `ExisteNumeroParte`**
+
+| Pieza | Qué hace | Por qué |
+|---|---|---|
+| `COUNT(*)` | Cuenta cuántas piezas cumplen la condición | Solo importa saber si hay alguna, no traer sus datos |
+| `p.NumeroParte = @NumeroParte` | Busca ese número de parte | Sin `AND p.Activo = 1`: el `UNIQUE` de la base también cuenta las piezas **eliminadas**, y esta revisión debe coincidir con él |
+| `AND p.PiezaId <> @PiezaId` | No cuenta la pieza que se está editando | Sin esto, guardar una pieza **sin cambiar** su número diría que ya existe, porque se encuentra a sí misma. En un alta, `PiezaId` es `0` y no excluye a nadie |
+| `(int)cmd.ExecuteScalar() > 0` | Devuelve `true` si hay alguna | `ExecuteScalar` regresa la primera columna del primer renglón: aquí, el conteo |
+
+### Negocio
+
+En `Negocio/PiezasNegocio.cs`, primero se agrega un `using` (para la lista de errores).
+
+**Antes:**
+
+```csharp
+using CursoWeb.Datos;
+using CursoWeb.Modelos;
+```
+**Después:**
+
+```csharp
+using System.Collections.Generic;
+using CursoWeb.Datos;
+using CursoWeb.Modelos;
+```
+**Agregar** a la clase, después de `Listar`:
+
+```csharp
+public Respuesta Guardar(Pieza p)
+{
+    Normalizar(p);
+
+    var errores = Validar(p);
+    if (errores.Count > 0)
+    {
+        return Respuesta.Error(string.Join(" ", errores));
+    }
+
+    if (datos.ExisteNumeroParte(p.NumeroParte, p.PiezaId))
+    {
+        return Respuesta.Error("Ya existe una pieza con ese número de parte (puede estar eliminada).");
+    }
+
+    if (p.PiezaId == 0)
+    {
+        p.PiezaId = datos.Insertar(p);
+        return Respuesta.Exito("Pieza guardada.", p);
+    }
+
+    if (datos.Actualizar(p) == 0)
+    {
+        return Respuesta.Error("La pieza no existe o fue eliminada.");
+    }
+    return Respuesta.Exito("Pieza actualizada.", p);
+}
+
+public Respuesta Eliminar(int piezaId)
+{
+    if (datos.Desactivar(piezaId) == 0)
+    {
+        return Respuesta.Error("La pieza no existe o ya fue eliminada.");
+    }
+    return Respuesta.Exito("Pieza eliminada.");
+}
+
+private static void Normalizar(Pieza p)
+{
+    p.NumeroParte = Limpiar(p.NumeroParte);
+    p.Descripcion = Limpiar(p.Descripcion);
+}
+
+private static string Limpiar(string valor)
+{
+    if (string.IsNullOrWhiteSpace(valor))
+    {
+        return null;
+    }
+    return valor.Trim();
+}
+
+private static List<string> Validar(Pieza p)
+{
+    var errores = new List<string>();
+
+    if (p.FamiliaId <= 0)
+    {
+        errores.Add("Selecciona una familia.");
+    }
+
+    if (p.NumeroParte == null)
+    {
+        errores.Add("El número de parte es obligatorio.");
+    }
+    else if (p.NumeroParte.Length > 50)
+    {
+        errores.Add("El número de parte no puede pasar de 50 caracteres.");
+    }
+
+    if (p.Descripcion == null)
+    {
+        errores.Add("La descripción es obligatoria.");
+    }
+    else if (p.Descripcion.Length > 250)
+    {
+        errores.Add("La descripción no puede pasar de 250 caracteres.");
+    }
+
+    return errores;
+}
+```
+
+| Pieza | Qué hace | Por qué |
+|---|---|---|
+| `Normalizar` y `Limpiar` | Quitan espacios de los extremos y convierten lo vacío en `null` | Son **idénticos** a los de Familias. Con `null`, `Validar` solo pregunta una cosa: si falta el valor |
+| `Validar` | Familia elegida, número de parte obligatorio (máximo 50) y descripción obligatoria (máximo 250) | Los largos son los de las columnas: así el error lo da Negocio con un mensaje claro y no SQL Server con uno técnico |
+| `ExisteNumeroParte(...)` en `Guardar` | Revisa el número de parte **después de validar** | Necesita un número ya válido. Es la revisión amable: el usuario recibe un mensaje que entiende |
+| El mensaje *"...(puede estar eliminada)"* | Dice que el número puede estar ocupado por una pieza eliminada | El `UNIQUE` no mira `Activo`: el número de una pieza eliminada sigue ocupado |
+| `PiezaId == 0` | Decide entre insertar y actualizar | La misma acción `guardar` de Clientes y Familias |
+
+El `UNIQUE` de la base sigue siendo la **última defensa**: si dos usuarios guardaran el mismo número de parte al mismo tiempo, la revisión de Negocio podría pasar en los dos y SQL Server rechazaría al segundo.
+
+### Handler
+
+En `Handlers/PiezasHandler.ashx.cs`, tres cambios.
+
+**1. Un `using` nuevo**, para leer el cuerpo de la petición.
+
+**Antes:**
+
+```csharp
+using System;
+using System.Web;
+```
+**Después:**
+
+```csharp
+using System;
+using System.IO;
+using System.Web;
+```
+**2. Agregar** al `switch`, entre `listar` y `default`:
+
+```csharp
+case "guardar":
+    if (context.Request.HttpMethod != "POST")
+    {
+        context.Response.StatusCode = 405;
+        respuesta = Respuesta.Error("Para guardar se usa POST.");
+        break;
+    }
+
+    var pieza = LeerCuerpo<Pieza>(context);
+    respuesta = pieza == null
+        ? Respuesta.Error("No llegaron los datos de la pieza.")
+        : negocio.Guardar(pieza);
+    break;
+
+case "eliminar":
+    if (context.Request.HttpMethod != "POST")
+    {
+        context.Response.StatusCode = 405;
+        respuesta = Respuesta.Error("Para eliminar se usa POST.");
+        break;
+    }
+
+    var aEliminar = LeerCuerpo<Pieza>(context);
+    respuesta = aEliminar == null
+        ? Respuesta.Error("No llegó la pieza a eliminar.")
+        : negocio.Eliminar(aEliminar.PiezaId);
+    break;
+```
+**3. Agregar** a la clase, antes de `IsReusable`:
+
+```csharp
+private static T LeerCuerpo<T>(HttpContext context)
+{
+    using (var lector = new StreamReader(context.Request.InputStream))
+    {
+        return JsonConvert.DeserializeObject<T>(lector.ReadToEnd(), Json);
+    }
+}
+```
+
+Es `FamiliasHandler` con otros nombres: lo que cambia datos solo acepta `POST` (si no, responde `405`), y el objeto llega como JSON en el cuerpo de la petición. `guardar` recibe una `Pieza` completa; `eliminar` solo usa su `PiezaId`.
+
+## 10. `piezas.js`: guardar, editar y eliminar
+
+📖 [jQuery: `$.ajax()`](https://api.jquery.com/jQuery.ajax/) · [jQuery: `.val()`](https://api.jquery.com/val/) · [Bootstrap: Modal](https://getbootstrap.com/docs/5.3/components/modal/) · [Bootstrap Table: métodos](https://bootstrap-table.com/docs/api/methods/) · [Bootstrap Table: opciones de columna](https://bootstrap-table.com/docs/api/column-options/) · [MDN: `JSON.stringify`](https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify)
+
+Seis cambios en `js/piezas.js`.
+
+**1. Variables.**
+
+**Antes:**
+
+```javascript
+let piezaIdEditando = 0;
+let modalPieza;
+```
+**Después:**
+
+```javascript
+let piezaIdEditando = 0;
+let piezaAEliminar = null;
+let modalPieza;
+let modalConfirmar;
+```
+**2. Arranque.** Enlaza el botón **Guardar** y el de confirmar la eliminación, y crea el modal de confirmación.
+
+**Antes:**
+
+```javascript
+$(function () {
+    modalPieza = new bootstrap.Modal('#mdlPieza');
+
+    $('#btnNuevo').on('click', nuevo);
+    $('#cboCliente').on('change', cambiarCliente);
+    $('#mdlPieza').on('shown.bs.modal', function () {
+        $('#cboCliente').trigger('focus');
+    });
+
+    cargarClientes();
+    inicializarTabla();
+});
+```
+**Después:**
+
+```javascript
+$(function () {
+    modalPieza = new bootstrap.Modal('#mdlPieza');
+    modalConfirmar = new bootstrap.Modal('#mdlConfirmar');
+
+    $('#btnNuevo').on('click', nuevo);
+    $('#btnGuardar').on('click', guardar);
+    $('#btnConfirmarEliminar').on('click', confirmarEliminar);
+    $('#cboCliente').on('change', cambiarCliente);
+    $('#mdlPieza').on('shown.bs.modal', function () {
+        $('#cboCliente').trigger('focus');
+    });
+
+    cargarClientes();
+    inicializarTabla();
+});
+```
+**3. Agregar** después de `cargarFamilias`:
+
+```javascript
+function obtenerPieza() {
+    return {
+        piezaId: piezaIdEditando,
+        familiaId: Number($('#cboFamilia').val()) || 0,
+        numeroParte: $('#txtNumeroParte').val().trim(),
+        descripcion: $('#txtDescripcion').val().trim()
+    };
+}
+
+function validarPieza(p, clienteId) {
+    const errores = [];
+    if (!clienteId) {
+        errores.push('Selecciona un cliente.');
+    }
+    if (!p.familiaId) {
+        errores.push('Selecciona una familia.');
+    }
+    if (!p.numeroParte) {
+        errores.push('El número de parte es obligatorio.');
+    }
+    if (!p.descripcion) {
+        errores.push('La descripción es obligatoria.');
+    }
+    return errores;
+}
+```
+**4. Agregar** después de `nuevo`:
+
+```javascript
+function guardar() {
+    ocultarMensaje('#divMensajeModal');
+    const pieza = obtenerPieza();
+    const errores = validarPieza(pieza, Number($('#cboCliente').val()) || 0);
+    if (errores.length > 0) {
+        mostrarMensaje(errores.join(' '), 'danger', '#divMensajeModal');
+        return;
+    }
+    enviarPieza(pieza);
+}
+
+function enviarPieza(pieza) {
+    $('#btnGuardar').prop('disabled', true);
+
+    $.ajax({
+        url: 'Handlers/PiezasHandler.ashx?accion=guardar',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(pieza),
+        dataType: 'json'
+    })
+        .done(function (r) {
+            if (!r.ok) {
+                mostrarMensaje(r.mensaje, 'danger', '#divMensajeModal');
+                return;
+            }
+            modalPieza.hide();
+            mostrarMensaje(r.mensaje, 'success');
+            limpiarCampos();
+            $('#tblPiezas').bootstrapTable('refresh');
+        })
+        .fail(function (xhr) {
+            mostrarMensaje('No se pudo comunicar con el servidor (' + xhr.status + ').', 'danger', '#divMensajeModal');
+        })
+        .always(function () {
+            $('#btnGuardar').prop('disabled', false);
+        });
+}
+```
+**5. Tabla.** Se agrega la columna **Acciones**.
+
+**Antes:**
+
+```javascript
+function inicializarTabla() {
+    $('#tblPiezas').bootstrapTable({
+        url: 'Handlers/PiezasHandler.ashx?accion=listar',
+        responseHandler: function (r) {
+            return r.ok ? r.datos : [];
+        },
+        classes: 'table table-striped table-hover',
+        escape: true,
+        search: true,
+        pagination: true,
+        pageSize: 10,
+        locale: 'es-MX',
+        columns: [
+            { field: 'clienteNombre', title: 'Cliente', sortable: true },
+            { field: 'familiaNombre', title: 'Familia', sortable: true },
+            { field: 'numeroParte', title: 'Número de parte', sortable: true },
+            { field: 'descripcion', title: 'Descripción' },
+            { field: 'fechaAlta', title: 'Alta', sortable: true, formatter: formatoFecha }
+        ]
+    });
+}
+```
+**Después:**
+
+```javascript
+function inicializarTabla() {
+    $('#tblPiezas').bootstrapTable({
+        url: 'Handlers/PiezasHandler.ashx?accion=listar',
+        responseHandler: function (r) {
+            return r.ok ? r.datos : [];
+        },
+        classes: 'table table-striped table-hover',
+        escape: true,
+        search: true,
+        pagination: true,
+        pageSize: 10,
+        locale: 'es-MX',
+        columns: [
+            { field: 'clienteNombre', title: 'Cliente', sortable: true },
+            { field: 'familiaNombre', title: 'Familia', sortable: true },
+            { field: 'numeroParte', title: 'Número de parte', sortable: true },
+            { field: 'descripcion', title: 'Descripción' },
+            { field: 'fechaAlta', title: 'Alta', sortable: true, formatter: formatoFecha },
+            { field: 'piezaId', title: 'Acciones', align: 'right', formatter: formatoAcciones, events: eventosAcciones }
+        ]
+    });
+}
+```
+**6. Agregar** al final del archivo:
+
+```javascript
+function formatoAcciones() {
+    return '<button type="button" class="btn btn-sm btn-outline-primary btn-editar">Editar</button> ' +
+        '<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar">Eliminar</button>';
+}
+
+const eventosAcciones = {
+    'click .btn-editar': function (e, valor, renglon) {
+        editar(renglon);
+    },
+    'click .btn-eliminar': function (e, valor, renglon) {
+        eliminar(renglon);
+    }
+};
+
+function editar(p) {
+    piezaIdEditando = p.piezaId;
+    $('#cboCliente').val(p.clienteId);
+    cargarFamilias(p.clienteId, p.familiaId);
+    $('#txtNumeroParte').val(p.numeroParte);
+    $('#txtDescripcion').val(p.descripcion);
+    $('#lblTituloFormulario').text('Editar pieza');
+    ocultarMensaje();
+    ocultarMensaje('#divMensajeModal');
+    modalPieza.show();
+}
+
+function eliminar(p) {
+    piezaAEliminar = p;
+    $('#lblConfirmar').text('¿Eliminar la pieza "' + p.numeroParte + '" de ' + p.familiaNombre + '?');
+    ocultarMensaje();
+    modalConfirmar.show();
+}
+
+function confirmarEliminar() {
+    modalConfirmar.hide();
+
+    $.ajax({
+        url: 'Handlers/PiezasHandler.ashx?accion=eliminar',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ piezaId: piezaAEliminar.piezaId }),
+        dataType: 'json'
+    })
+        .done(function (r) {
+            mostrarMensaje(r.mensaje, r.ok ? 'success' : 'danger');
+            if (r.ok) {
+                $('#tblPiezas').bootstrapTable('refresh');
+            }
+        })
+        .fail(function (xhr) {
+            mostrarMensaje('No se pudo comunicar con el servidor (' + xhr.status + ').', 'danger');
+        });
+}
+```
+
+| Función | Qué cambia respecto a `familias.js` |
+|---|---|
+| `obtenerPieza` | Lee solo la **familia** (`cboFamilia`), el número de parte y la descripción. El cliente no viaja al servidor: la pieza solo guarda su familia |
+| `validarPieza` | Recibe también el cliente elegido, porque no forma parte del objeto. Valida cliente, familia, número de parte y descripción |
+| `enviarPieza` | `PiezasHandler.ashx?accion=guardar`. Es lo mismo que `enviarFamilia` |
+| `editar` | **Es lo nuevo.** Selecciona el cliente, pide sus familias con `cargarFamilias(p.clienteId, p.familiaId)` y la familia queda seleccionada *cuando llegan* |
+| `eliminar` / `confirmarEliminar` | El texto de confirmación usa el número de parte y la familia. Lo demás, igual |
+
+**Por qué `editar` no hace `$('#cboFamilia').val(p.familiaId)` directamente:** en ese momento el combo de familias todavía no tiene opciones, porque la respuesta del servidor no ha llegado. Por eso `cargarFamilias` recibe el `familiaId` y lo selecciona *dentro del `.done`*, cuando las opciones ya existen.
+
+### Probar
+1. **Nueva pieza** → elige cliente y familia, escribe un número de parte y una descripción → **Guardar**. Aparece en la tabla.
+2. Guarda sin llenar nada: los mensajes dicen qué falta (cliente, familia, número de parte y descripción).
+3. Repite un número de parte que ya existe: *"Ya existe una pieza con ese número de parte (puede estar eliminada)."*
+4. **Editar** una pieza: el cliente y la familia aparecen seleccionados. Guarda **sin cambiar** el número: se guarda sin decir que ya existe.
+5. **Editar** y cambia la pieza a **otra familia** del mismo cliente: se guarda y la tabla lo refleja.
+6. **Eliminar** → confirmar: desaparece de la tabla. Intenta dar de alta otra pieza con **el mismo número de parte**: sigue ocupado.
+
+| Si pasa esto | Revisa |
+|---|---|
+| El combo de familias no se llena | Que el nombre de la acción sea exactamente `listarPorCliente` en el handler y en `piezas.js` (el `switch` distingue mayúsculas), y la URL en Network (F12) |
+| El combo de familias se queda deshabilitado | Que el cliente tenga familias activas; si no, el mensaje lo dice |
+| Responde *"Acción no válida."* | El nombre de la acción en la URL no coincide con ningún `case` |
+| Responde *"Para guardar se usa POST."* | La petición se hizo con `GET`: revisa `type: 'POST'` en `enviarPieza` |
+| Al editar, la familia no queda seleccionada | Que `editar` llame `cargarFamilias(p.clienteId, p.familiaId)` con los dos valores |
+| Al editar una pieza de un cliente eliminado, el combo de cliente aparece vacío | Es un caso límite conocido: el combo solo trae clientes activos |
+| Visual Studio no reconoce `ExisteNumeroParte` u otro método nuevo | Que el método esté dentro de la clase, antes de la llave que la cierra |
+| Acentos raros (`DescripciÃ³n`) | Guarda `Piezas.aspx` desde Visual Studio con *UTF-8 con firma* |

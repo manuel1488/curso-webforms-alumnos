@@ -588,7 +588,7 @@ Es lo correcto: la base de datos no deja guardar una familia de un cliente que n
 
 📖 [Bootstrap: Select](https://getbootstrap.com/docs/5.3/forms/select/) · [MDN: `<select>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/select) · [MDN: `<textarea>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/textarea) · [jQuery: `.append()`](https://api.jquery.com/append/)
 
-Familias es un catálogo igual a Clientes: misma arquitectura, mismas capas, mismos pasos. Lo construyes **copiando cada archivo de Clientes y cambiando lo que cambia**. Si te atoras, los archivos completos están en [`ejemplos/familias/`](ejemplos/familias/).
+Familias es un catálogo igual a Clientes: misma arquitectura, mismas capas, mismos pasos. **Lo construimos juntos**: el instructor crea cada archivo en pantalla, tú lo creas igual, **copias el contenido completo de esta sección y lo pegas**, y compilas. Después se revisa la tabla de *qué cambia* respecto a Clientes: esa es la parte importante. Si te quedas atrás, los archivos completos están en [`ejemplos/familias/`](ejemplos/familias/).
 
 ### El mapa
 
@@ -601,7 +601,7 @@ Familias es un catálogo igual a Clientes: misma arquitectura, mismas capas, mis
 | `Familias.aspx` | `Clientes.aspx` | Los campos: un `<select>` para el cliente y un `<textarea>` para la descripción |
 | `js/familias.js` | `clientes.js` | Los nombres, más `cargarClientes()` para llenar el combo |
 
-> **Truco:** en cada archivo copiado, **Ctrl+H** para reemplazar `Cliente` → `Familia` y `cliente` → `familia` respetando mayúsculas. Después revisa a mano: Familias **también** tiene un `ClienteId`, y el reemplazo automático lo habrá cambiado donde no debía.
+> **En tu trabajo, sin paso a paso:** copia el archivo de Clientes y usa **Ctrl+H** para reemplazar `Cliente` → `Familia` y `cliente` → `familia` respetando mayúsculas. Después revisa a mano: Familias **también** tiene un `ClienteId`, y el reemplazo automático lo habrá cambiado donde no debía.
 
 ### 1. El modelo
 
@@ -1305,3 +1305,36 @@ En `obtenerFamilia`, el valor de un `<select>` siempre es texto (`'3'`); `Number
 | Visual Studio no reconoce una clase nueva | Que el archivo esté incluido en el proyecto (*Mostrar todos los archivos → Incluir en el proyecto*) |
 | El combo sale vacío | Que `cargarClientes()` se llame en el arranque, y la URL en Network |
 | Acentos raros (`DescripciÃ³n`) | Guarda el `.aspx` desde Visual Studio con *UTF-8 con firma* |
+
+---
+
+> **Bloque 3 · Terminar Familias**
+
+## 9. Terminar el catálogo de Familias
+
+En este bloque terminamos el catálogo de Familias, igual que en el bloque 2: el instructor continúa en pantalla y tú copias cada archivo de la sección 8. Al final, revisa tu catálogo con esta lista. Mañana, Piezas se construye a partir de los archivos de Familias, así que es importante salir de hoy con Familias completo.
+
+| # | Paso | Cómo compruebas que quedó bien |
+|---|---|---|
+| 1 | Tabla `Familias` en SSMS (sección 7) | El `SELECT` con `JOIN` muestra el cliente de cada familia |
+| 2 | `Modelos/Familia.cs` | Compila (**Ctrl+Shift+B**) |
+| 3 | `Datos/FamiliasDatos.cs` | Compila |
+| 4 | `Negocio/FamiliasNegocio.cs` | Compila |
+| 5 | `Handlers/FamiliasHandler.ashx` | `Handlers/FamiliasHandler.ashx?accion=listar` en el navegador muestra el JSON con las familias |
+| 6 | `Familias.aspx` | La página abre con el botón **Nueva familia** y los acentos se ven bien |
+| 7 | `js/familias.js` | La tabla muestra las familias con la columna **Cliente**, y el combo del modal trae los clientes |
+| 8 | Los cinco casos de *Probar* (sección 8) | Todos salen como dice |
+
+> Si vas muy atrasado, copia los archivos de [`ejemplos/familias/`](ejemplos/familias/) e inclúyelos en el proyecto. Después recorre cada uno con las tablas de *qué cambia* de la sección 8, para entender en qué se parece y en qué no a Clientes.
+
+Si terminas antes, prueba casos extra: un cliente sin familias, una descripción de más de 250 caracteres, o editar una familia y cambiarla a otro cliente.
+
+| Si pasa esto | Revisa |
+|---|---|
+| Tras reemplazar con Ctrl+H, aparece `FamiliaId` donde debía decir `ClienteId` | El modelo, el SQL y `obtenerFamilia`: Familias también tiene un `ClienteId` |
+| La tabla sale vacía pero el handler sí responde | Que los `field` de las columnas coincidan con el JSON en camelCase (`clienteNombre`, no `ClienteNombre`) |
+
+### Al terminar el día
+
+1. Guarda tu avance: `git add .`, `git commit -m "Día 3: CRUD completo de Clientes y catálogo de Familias"` y `git push`.
+2. En el repo del curso: `git pull origin main` para traer `dia-3/final/`. Para correrla, copia `connectionStrings.ejemplo.config` como `connectionStrings.config` y pon tu contraseña.
