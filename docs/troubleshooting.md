@@ -2,6 +2,9 @@
 
 Antes de preguntar, abre **F12 → Network** y revisa la respuesta del servidor: casi siempre ahí está el error real.
 
+## Los acentos se ven raros (`DescripciÃ³n`)
+El archivo `.aspx` se guardó sin BOM (por ejemplo, editado con otro programa o copiado). Ábrelo en Visual Studio: *Archivo → Guardar como → flecha de Guardar → Guardar con codificación → Unicode (UTF-8 con firma)*.
+
 ## En la consola sale `favicon.ico` 404
 Es normal: el navegador siempre busca un icono para la pestaña y el proyecto no tiene. No afecta en nada.
 
