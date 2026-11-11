@@ -19,3 +19,6 @@
 
 ## Resultado esperado
 Catálogo de Piezas funcionando con combos dependientes de Cliente y Familia.
+
+## Material
+- [Paso a paso del día](paso-a-paso.md)
