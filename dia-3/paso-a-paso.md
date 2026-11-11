@@ -513,3 +513,73 @@ No cambian `obtenerCliente`, `validarCliente`, `inicializarTabla`, `formatoFecha
 3. **Editar** → el modal se abre lleno con *"Editar cliente"*. Guarda → *"Cliente actualizado."*
 4. **Cancelar** o la **X** → se cierra sin guardar.
 5. **Eliminar** → la confirmación con el nombre. *Eliminar* → el renglón desaparece.
+
+## 7. La tabla `Familias` en SQL Server
+
+📖 [Restricciones de clave principal y clave externa](https://learn.microsoft.com/es-es/sql/relational-databases/tables/primary-and-foreign-key-constraints) · [Combinaciones (JOIN)](https://learn.microsoft.com/es-es/sql/relational-databases/performance/joins)
+
+Escríbela a mano en SSMS, con tu usuario de administrador. Si algo no te funciona, compara con [`sql/01-esquema.sql`](../sql/01-esquema.sql).
+
+```sql
+USE CursoWeb;
+GO
+
+CREATE TABLE dbo.Familias
+(
+      FamiliaId      INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Familias PRIMARY KEY
+    , ClienteId      INT               NOT NULL CONSTRAINT FK_Familias_Clientes REFERENCES dbo.Clientes (ClienteId)
+    , Nombre         NVARCHAR(100)     NOT NULL
+    , Descripcion    NVARCHAR(250)     NULL
+    , Activo         BIT               NOT NULL CONSTRAINT DF_Familias_Activo DEFAULT (1)
+    , FechaAlta      DATETIME2(0)      NOT NULL CONSTRAINT DF_Familias_FechaAlta DEFAULT (SYSDATETIME())
+);
+GO
+```
+
+Casi todo es igual a `Clientes`. Lo nuevo es la **llave foránea**:
+
+| Pieza | Para qué |
+|---|---|
+| `ClienteId INT NOT NULL` | Cada familia pertenece a un cliente, y es obligatorio |
+| `CONSTRAINT FK_Familias_Clientes` | El nombre de la regla, con la convención `FK_TablaHija_TablaPadre`. Aparece en el mensaje de error |
+| `REFERENCES dbo.Clientes (ClienteId)` | El valor de `ClienteId` tiene que existir en `dbo.Clientes` |
+
+Prueba la relación con dos `ClienteId` que existan en tu tabla:
+
+```sql
+INSERT INTO dbo.Familias (ClienteId, Nombre, Descripcion)
+VALUES
+      (1, N'Cerraduras', N'Cerraduras de puerta delanteras y traseras')
+    , (1, N'Bisagras',   NULL);
+
+SELECT
+      c.Nombre      AS Cliente
+    , f.Nombre      AS Familia
+    , f.Descripcion AS Descripcion
+FROM
+    dbo.Familias AS f
+INNER JOIN
+    dbo.Clientes AS c ON c.ClienteId = f.ClienteId;
+```
+
+`Familias` solo guarda el número del cliente; el `JOIN` une las dos tablas para ver su nombre.
+
+Y ahora una familia de un cliente que no existe:
+
+```sql
+INSERT INTO dbo.Familias (ClienteId, Nombre) VALUES (999, N'Familia huérfana');
+```
+
+Falla con:
+
+```
+Msg 547, Level 16, State 0
+The INSERT statement conflicted with the FOREIGN KEY constraint "FK_Familias_Clientes".
+The conflict occurred in database "CursoWeb", table "dbo.Clientes", column 'ClienteId'.
+```
+
+Es lo correcto: la base de datos no deja guardar una familia de un cliente que no existe.
+
+> ¿Y si el cliente existe pero está eliminado (`Activo = 0`)? La llave foránea **sí lo permite**, porque el cliente sigue en la tabla. Esa regla la cuida la capa de Negocio.
+
+`usrCursoWeb` ya puede usar la tabla nueva: el permiso del día 2 es para todo el esquema `dbo`.
