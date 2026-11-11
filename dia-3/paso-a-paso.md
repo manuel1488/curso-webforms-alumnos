@@ -255,3 +255,261 @@ function eliminar(c) {
 | Los botones no hacen nada | Que la columna tenga `events: eventosAcciones` y que la clase del botón coincida con el selector |
 | Al dar clic, la página se recarga | Que los botones del `formatter` tengan `type="button"` |
 | `ReferenceError: $ is not defined` | Con Ctrl+U, que `jquery` aparezca antes que `clientes.js`, y que tu `<script>` esté en el `Content` de `Scripts` |
+
+---
+
+> **Bloque 2 · Modales y Familias**
+
+## 6. Modales
+
+📖 [Bootstrap: Modal](https://getbootstrap.com/docs/5.3/components/modal/) · [Bootstrap: Flex](https://getbootstrap.com/docs/5.3/utilities/flex/) · [MDN: parámetros por defecto](https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Functions/Default_parameters)
+
+Un modal es una ventana encima de la página que hay que cerrar para seguir, como `ShowDialog()` en WinForms. Lo usamos para el formulario de alta y edición, y para confirmar antes de eliminar. Esta vez el código no solo crece: el formulario **se mueve** al modal.
+
+### `Clientes.aspx`
+
+| | Qué | Por qué |
+|---|---|---|
+| **Se quita** | La tarjeta (`card`) con el formulario | El formulario se va a un modal |
+| **Se quita** | El botón **Limpiar** | Lo reemplaza **Cancelar**, que cierra el modal |
+| **Se pone** | El botón **Nuevo cliente** (`btnNuevo`) junto al título | Abre el formulario para un alta |
+| **Se pone** | El modal `mdlCliente` con **el mismo formulario** adentro | Mismos `id` y mismo grid; el título `lblTituloFormulario` pasa al encabezado del modal |
+| **Se pone** | `divMensajeModal`, dentro del modal | Con el modal abierto, `divMensaje` queda detrás del fondo oscuro |
+| **Se pone** | El modal `mdlConfirmar` | Reemplaza al `confirm()` |
+
+Así queda el contenido de `MainContent`:
+
+```html
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Clientes</h1>
+    <button type="button" id="btnNuevo" class="btn btn-primary">Nuevo cliente</button>
+</div>
+<div id="divMensaje" class="alert d-none" role="alert"></div>
+
+<table id="tblClientes"></table>
+
+<!-- Modal: alta y edición -->
+<div class="modal fade" id="mdlCliente" tabindex="-1" aria-labelledby="lblTituloFormulario" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="lblTituloFormulario" class="modal-title">Nuevo cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="divMensajeModal" class="alert d-none" role="alert"></div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="txtNombre" class="form-label">Nombre</label>
+                        <input type="text" id="txtNombre" class="form-control" maxlength="150" />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="txtRFC" class="form-label">RFC</label>
+                        <input type="text" id="txtRFC" class="form-control" maxlength="13" />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="txtContacto" class="form-label">Contacto</label>
+                        <input type="text" id="txtContacto" class="form-control" maxlength="100" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="txtCorreo" class="form-label">Correo</label>
+                        <input type="email" id="txtCorreo" class="form-control" maxlength="150" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnGuardar" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: confirmar eliminación -->
+<div class="modal fade" id="mdlConfirmar" tabindex="-1" aria-labelledby="lblTituloConfirmar" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="lblTituloConfirmar" class="modal-title">Eliminar cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p id="lblConfirmar" class="mb-0"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarEliminar" class="btn btn-danger">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+| Pieza | Qué es |
+|---|---|
+| `d-flex justify-content-between align-items-center` | Pone el título y el botón en una fila, cada uno en un extremo y centrados verticalmente |
+| `modal fade` | El contenedor del modal; `fade` le da la animación |
+| `modal-dialog` / `modal-lg` | La ventana; `modal-lg` la hace más ancha |
+| `modal-header` / `modal-body` / `modal-footer` | Título, contenido y botones |
+| `data-bs-dismiss="modal"` | Cierra el modal sin JavaScript: la **X** y **Cancelar** |
+| `tabindex`, `aria-*` | Accesibilidad; vienen así en la documentación y se copian tal cual |
+
+### `js/clientes.js`
+
+| | Qué | Por qué |
+|---|---|---|
+| **Se pone** arriba | `clienteAEliminar`, `modalCliente`, `modalConfirmar` | El cliente por eliminar y los dos modales |
+| **Cambia** el arranque | Crea los modales, conecta `btnNuevo` y `btnConfirmarEliminar`, ya no conecta `btnLimpiar`, y pone el foco al terminar de abrir | |
+| **Cambia** `mostrarMensaje` y `ocultarMensaje` | Reciben un tercer parámetro opcional, `contenedor` | Sirven para la página y para el modal; las llamadas anteriores no cambian |
+| **Se pone** | `nuevo()` | Abre el modal vacío |
+| **Cambia** `guardar` y `enviarCliente` | Los errores van al modal; si todo sale bien, el modal se cierra | Corriges sin perder lo que escribiste |
+| **Cambia** `limpiarCampos` | Ya no pone el foco | Lo hace el evento `shown.bs.modal` |
+| **Se quita** | `limpiar()` | Ya no existe el botón Limpiar |
+| **Cambia** `editar` | Abre el modal | El formulario vive en el modal |
+| **Cambia** `eliminar` y **se pone** `confirmarEliminar` | `eliminar` solo pregunta; `confirmarEliminar` hace el `$.ajax` | Ver la nota de abajo |
+
+El arranque y los mensajes:
+
+```javascript
+let clienteIdEditando = 0;
+let clienteAEliminar = null;
+let modalCliente;
+let modalConfirmar;
+
+$(function () {
+    modalCliente = new bootstrap.Modal('#mdlCliente');
+    modalConfirmar = new bootstrap.Modal('#mdlConfirmar');
+
+    $('#btnNuevo').on('click', nuevo);
+    $('#btnGuardar').on('click', guardar);
+    $('#btnConfirmarEliminar').on('click', confirmarEliminar);
+    $('#mdlCliente').on('shown.bs.modal', function () {
+        $('#txtNombre').trigger('focus');
+    });
+
+    inicializarTabla();
+});
+
+function mostrarMensaje(texto, tipo, contenedor = '#divMensaje') {
+    $(contenedor)
+        .removeClass('d-none alert-success alert-danger')
+        .addClass('alert-' + tipo)
+        .text(texto);
+}
+
+function ocultarMensaje(contenedor = '#divMensaje') {
+    $(contenedor).addClass('d-none').empty();
+}
+
+function nuevo() {
+    limpiarCampos();
+    ocultarMensaje();
+    ocultarMensaje('#divMensajeModal');
+    modalCliente.show();
+}
+```
+
+Guardar con los errores en el modal:
+
+```javascript
+function guardar() {
+    ocultarMensaje('#divMensajeModal');
+    const cliente = obtenerCliente();
+    const errores = validarCliente(cliente);
+    if (errores.length > 0) {
+        mostrarMensaje(errores.join(' '), 'danger', '#divMensajeModal');
+        return;
+    }
+    enviarCliente(cliente);
+}
+```
+
+En `enviarCliente`, solo cambian `.done` y `.fail`:
+
+```javascript
+.done(function (r) {
+    if (!r.ok) {
+        mostrarMensaje(r.mensaje, 'danger', '#divMensajeModal');
+        return;
+    }
+    modalCliente.hide();
+    mostrarMensaje(r.mensaje, 'success');
+    limpiarCampos();
+    $('#tblClientes').bootstrapTable('refresh');
+})
+.fail(function (xhr) {
+    mostrarMensaje('No se pudo comunicar con el servidor (' + xhr.status + ').', 'danger', '#divMensajeModal');
+})
+```
+
+`limpiarCampos` y `editar`:
+
+```javascript
+function limpiarCampos() {
+    $('#txtNombre, #txtRFC, #txtContacto, #txtCorreo').val('');
+    clienteIdEditando = 0;
+    $('#lblTituloFormulario').text('Nuevo cliente');
+}
+
+function editar(c) {
+    clienteIdEditando = c.clienteId;
+    $('#txtNombre').val(c.nombre);
+    $('#txtRFC').val(c.rfc || '');
+    $('#txtContacto').val(c.contacto || '');
+    $('#txtCorreo').val(c.correo || '');
+    $('#lblTituloFormulario').text('Editar cliente');
+    ocultarMensaje();
+    ocultarMensaje('#divMensajeModal');
+    modalCliente.show();
+}
+```
+
+Eliminar con el modal de confirmación:
+
+```javascript
+function eliminar(c) {
+    clienteAEliminar = c;
+    $('#lblConfirmar').text('¿Eliminar al cliente "' + c.nombre + '"?');
+    ocultarMensaje();
+    modalConfirmar.show();
+}
+
+function confirmarEliminar() {
+    modalConfirmar.hide();
+
+    $.ajax({
+        url: 'Handlers/ClientesHandler.ashx?accion=eliminar',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ clienteId: clienteAEliminar.clienteId }),
+        dataType: 'json'
+    })
+        .done(function (r) {
+            mostrarMensaje(r.mensaje, r.ok ? 'success' : 'danger');
+            if (r.ok) {
+                $('#tblClientes').bootstrapTable('refresh');
+            }
+        })
+        .fail(function (xhr) {
+            mostrarMensaje('No se pudo comunicar con el servidor (' + xhr.status + ').', 'danger');
+        });
+}
+```
+
+| Pieza | Para qué |
+|---|---|
+| `new bootstrap.Modal('#mdlCliente')` | Crea el objeto del modal una vez; después solo se usan `.show()` y `.hide()` |
+| `shown.bs.modal` | Evento de Bootstrap cuando el modal **terminó** de abrirse; antes no se puede poner el foco |
+| `contenedor = '#divMensaje'` | Parámetro por defecto: si no lo mandas, usa `'#divMensaje'` |
+
+> **`confirm()` contra un modal.** `confirm()` detiene el código hasta que respondes; un modal **no**: se abre y el código sigue. Por eso eliminar se parte en dos funciones: `eliminar` pregunta y `confirmarEliminar` actúa. Mientras tanto, el cliente se guarda en `clienteAEliminar`.
+
+No cambian `obtenerCliente`, `validarCliente`, `inicializarTabla`, `formatoFecha`, `formatoAcciones`, `eventosAcciones` ni nada del servidor.
+
+### Probar
+
+1. **Nuevo cliente** → modal vacío con el foco en *Nombre*. Guarda uno válido → el modal se cierra, mensaje verde y la tabla se refresca.
+2. **Nuevo cliente** con el nombre vacío → el error aparece dentro del modal.
+3. **Editar** → el modal se abre lleno con *"Editar cliente"*. Guarda → *"Cliente actualizado."*
+4. **Cancelar** o la **X** → se cierra sin guardar.
+5. **Eliminar** → la confirmación con el nombre. *Eliminar* → el renglón desaparece.
