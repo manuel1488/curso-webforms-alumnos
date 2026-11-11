@@ -21,3 +21,6 @@
 
 ## Resultado esperado
 CRUD completo de Clientes y de Familias, con modales y mensajes de error claros.
+
+## Material
+- [Paso a paso del día](paso-a-paso.md)
