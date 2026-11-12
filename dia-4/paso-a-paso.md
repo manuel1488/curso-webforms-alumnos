@@ -117,7 +117,7 @@ SQL Server rechaza la fila, y su mensaje menciona la restricción `UQ_Piezas_Num
 
 ## 4. Servidor: el listado
 
-Hoy solo construimos lo necesario para ver las piezas llegar al navegador. Cada archivo se copia de su equivalente de Familias: **la estructura es la misma**, solo cambian los nombres y el SQL.
+Hoy solo construimos lo necesario para ver las piezas llegar al navegador. La estructura es la misma que en Familias; solo cambian los nombres y el SQL. **Lo construimos juntos**: el instructor crea cada archivo en pantalla, tú lo creas igual, **copias el contenido completo de esta sección y lo pegas**, y compilas (**Ctrl+Shift+B**) antes de pasar al siguiente. Después se revisa la tabla de *qué cambia* respecto a su equivalente de Familias: esa es la parte importante.
 
 ### 1. El modelo
 
@@ -361,6 +361,8 @@ Ahora la pantalla de Piezas. Lo nuevo del día son los **combos dependientes**: 
 
 - Al cambiar el cliente, la página le **pregunta al servidor** (con AJAX) por las familias de ese cliente y llena el segundo combo. Es lo que en WinForms harías en el evento `SelectedIndexChanged` del primer `ComboBox`.
 - AJAX es **asíncrono**: la respuesta llega después, y mientras tanto el código sigue. Por eso, al editar una pieza, su familia se selecciona *cuando llega la respuesta*, no antes.
+
+Seguimos con la **construcción guiada**: el instructor modifica cada archivo en pantalla, tú copias el contenido de la sección, compilas y se revisa lo que cambia. Si te quedas atrás, no pasa nada: el bloque 3 sirve para terminar.
 
 ## 6. Combos dependientes: el servidor
 
@@ -1302,3 +1304,70 @@ function confirmarEliminar() {
 | Al editar una pieza de un cliente eliminado, el combo de cliente aparece vacío | Es un caso límite conocido: el combo solo trae clientes activos |
 | Visual Studio no reconoce `ExisteNumeroParte` u otro método nuevo | Que el método esté dentro de la clase, antes de la llave que la cierra |
 | Acentos raros (`DescripciÃ³n`) | Guarda `Piezas.aspx` desde Visual Studio con *UTF-8 con firma* |
+
+---
+
+> **Bloque 3 · Terminar, buenas prácticas y cierre**
+
+## 11. Terminar Piezas y cerrar el día
+
+En este bloque terminamos Piezas, igual que el día anterior: el instructor continúa en pantalla y tú copias cada archivo de las secciones 4 a 10. Al final revisa tu catálogo con esta lista.
+
+| # | Paso | Cómo compruebas que quedó bien |
+|---|---|---|
+| 1 | Tabla `Piezas` en SSMS (sección 3) | Insertar un número de parte repetido falla con `UQ_Piezas_NumeroParte` |
+| 2 | `Modelos/Pieza.cs` | Compila (**Ctrl+Shift+B**) |
+| 3 | `Datos/PiezasDatos.cs` | Compila |
+| 4 | `Negocio/PiezasNegocio.cs` | Compila |
+| 5 | `Handlers/PiezasHandler.ashx` | `Handlers/PiezasHandler.ashx?accion=listar` muestra el JSON con `clienteNombre` y `familiaNombre` |
+| 6 | `listarPorCliente` en Familias | `Handlers/FamiliasHandler.ashx?accion=listarPorCliente&clienteId=1` muestra solo las familias de ese cliente |
+| 7 | `Piezas.aspx` | La página abre con el botón **Nueva pieza** y los acentos se ven bien |
+| 8 | `js/piezas.js` | La tabla muestra las piezas y, en el modal, el combo de familia depende del cliente |
+| 9 | Los casos de *Probar* (secciones 8 y 10) | Todos salen como dice |
+
+Casos para el paso 9:
+
+1. **Nueva pieza**: el combo de familia está deshabilitado hasta elegir cliente; al elegirlo, trae solo sus familias.
+2. Guardar sin elegir familia → *"Selecciona una familia."*
+3. Guardar otra pieza con el mismo número de parte → *"Ya existe una pieza con ese número de parte (puede estar eliminada)."*
+4. **Editar** → cliente y familia aparecen seleccionados; guardar sin cambiar el número no dice que ya existe.
+5. **Eliminar** → desaparece de la tabla, pero su número de parte sigue ocupado.
+
+> Si vas muy atrasado, copia los archivos de [`ejemplos/piezas/`](ejemplos/piezas/) e inclúyelos en el proyecto. Después recorre cada uno con las tablas de *qué cambia*, para entender en qué se parece y en qué no a Familias.
+
+Si terminas antes, prueba casos extra: una descripción de más de 250 caracteres, un número de parte de más de 50, o cambiar el cliente de una pieza al editarla.
+
+## 12. Buenas prácticas
+
+📖 [Microsoft: convenciones de nomenclatura de identificadores de C#](https://learn.microsoft.com/es-es/dotnet/csharp/fundamentals/coding-style/identifier-names) · [Microsoft: inyección de código SQL](https://learn.microsoft.com/es-es/sql/relational-databases/security/sql-injection) · [MDN: elemento `<script>`](https://developer.mozilla.org/es/docs/Web/HTML/Reference/Elements/script)
+
+Con tu propio proyecto como ejemplo:
+
+**Nombres**
+
+| Dónde | Regla | Ejemplo |
+|---|---|---|
+| C#: tipos y métodos | `PascalCase` | `PiezasNegocio`, `ExisteNumeroParte` |
+| C#: variables locales y parámetros | `camelCase` | `piezaId`, `numeroParte` |
+| Controles de la página | camelCase con **prefijo** del tipo | `btnGuardar`, `txtNumeroParte`, `cboCliente`, `tblPiezas` |
+| SQL | Tabla en plural, llave `TablaId`, restricciones con nombre | `dbo.Piezas`, `PiezaId`, `FK_Piezas_Familias`, `UQ_Piezas_NumeroParte` |
+| JavaScript | camelCase | `clienteNombre`, `cargarFamilias` |
+
+**Carpetas**
+
+| Carpeta | Qué contiene | Qué no debe tener |
+|---|---|---|
+| `Modelos/` | Clases que solo guardan datos | Consultas ni reglas |
+| `Datos/` | SQL y ADO.NET | Validaciones de negocio |
+| `Negocio/` | Reglas, validaciones y mensajes | SQL |
+| `Handlers/` | Recibe la petición y responde JSON | Reglas de negocio |
+| `js/` | Un archivo por página | Código de otra página |
+
+**Un archivo JavaScript por página.** Cada página enlaza solo el suyo con `<script src="js/...">`: así un cambio en una pantalla no rompe otra.
+
+**Dos hábitos que ya practicaste:** parámetros siempre en el SQL (nunca texto concatenado) y mostrar mensajes con `.text()`, no `.html()`.
+
+### Al terminar el día
+
+1. Guarda tu avance: `git add .`, `git commit -m "Día 4: catálogo de Piezas con combos dependientes"` y `git push`.
+2. En el repo del curso: `git pull origin main` para traer `dia-4/final/`. Para correrla, copia `connectionStrings.ejemplo.config` como `connectionStrings.config` y pon tu contraseña.
