@@ -6,7 +6,7 @@ Lo que construimos juntos en clase. Si te atrasas o algo no te funciona, compár
 
 > **Bloque 1 · Filtro en Piezas y repaso del flujo**
 
-Hoy tres cosas: cerramos Piezas, le ponemos un filtro por cliente y familia, y repasamos todo el recorrido de una petición. Después exportamos a Excel lo que el filtro muestre y, al final del día, recibes el ejercicio integrador.
+Hoy tres cosas: cerramos Piezas, le ponemos un filtro por cliente y familia, y repasamos todo el recorrido de una petición. Después exportamos a Excel lo que el filtro muestre y al final arrancas el ejercicio integrador (requerimiento, tabla y modelo en las secciones 7 a 10).
 
 ## 1. Cierra Piezas
 
@@ -705,3 +705,132 @@ function exportar() {
 | La página se queda en blanco o muestra texto raro | La acción en la URL: debe ser `accion=exportar` (minúsculas) |
 | Exporta todo aunque filtraste | Que `recargarTabla()` actualice `filtroAplicado` **antes** de pedir la tabla |
 | Los acentos salen raros en Excel | Que el `.cs` se guardó en UTF-8 (Visual Studio lo hace por omisión) |
+
+---
+
+> **Bloque 3 · Arranque del ejercicio integrador**
+
+Cerramos el día con el ejercicio integrador: una pantalla nueva que pone en práctica todo lo del curso. Hoy se lee el requerimiento, se escribe la tabla `Lotes` y se hace el modelo `Lote`; el resto (datos, negocio, handler, página y JavaScript) se construye el [día 6](../dia-6/paso-a-paso.md). La solución completa está en [`dia-6/final/`](../dia-6/final/).
+
+## 7. El requerimiento
+
+**Contexto.** En planta se necesita saber cuántas piezas se produjeron, en qué lote y en qué turno, para poder rastrear un problema de calidad hasta su origen.
+
+**Requerimiento.** Construye una pantalla **Producción** que permita:
+
+1. Registrar un lote: cliente → familia → pieza (combos dependientes), número de lote, cantidad, fecha y turno (1, 2 o 3).
+2. Consultar lotes filtrando por pieza y rango de fechas.
+3. Editar y eliminar un lote.
+4. Exportar a Excel la consulta filtrada.
+
+**Reglas.**
+- El número de lote no se repite para la misma pieza.
+- La cantidad debe ser mayor a cero.
+- La fecha no puede ser futura.
+
+**Entregable.** La funcionalidad completa siguiendo la misma arquitectura del curso: página, handler, negocio, datos y tabla en SQL Server. Tú diseñas la tabla.
+
+Es Piezas otra vez, con tres diferencias: la pantalla cuelga de **tres** niveles, el filtro es por **fechas** y las reglas son más. El handler, la exportación y la eliminación lógica ya los hiciste.
+
+## 8. El diseño
+
+La tabla `Lotes` lleva `LoteId`, `PiezaId`, `NumeroLote`, `Cantidad`, `FechaProduccion`, `Turno`, `Activo` y `FechaAlta`. Estas son las decisiones de la solución:
+
+| Pieza del diseño | Decisión de la referencia | Por qué |
+|---|---|---|
+| **Tabla** | `LoteId`, `PiezaId`, `NumeroLote`, `Cantidad`, `FechaProduccion`, `Turno`, `Activo`, `FechaAlta` | Las columnas de control de siempre (`Activo`, `FechaAlta`) más lo que identifica a un lote |
+| **Relación** | `PiezaId` con llave foránea a `Piezas` | Un lote es de una pieza; la familia y el cliente se alcanzan **pasando por** `Piezas` y `Familias`, como el cliente en Piezas |
+| `FechaProduccion DATE` | Solo fecha, sin hora | La hora no importa para un lote, y evita problemas al filtrar por rango |
+| `Turno TINYINT` | Un número chico | Solo 1, 2 o 3 |
+| **Capas** | `Lote`, `LotesDatos`, `LotesNegocio`, `LotesHandler` | La misma arquitectura de Clientes, Familias y Piezas |
+| **Eliminación** | Lógica (`Activo = 0`) | Igual que los demás catálogos |
+
+Dónde vive cada regla:
+
+| Regla | Dónde se aplica | Por qué ahí |
+|---|---|---|
+| El número de lote no se repite para la misma pieza | `UNIQUE (PiezaId, NumeroLote)` **y** Negocio (`ExisteNumeroLote`) | Negocio da un mensaje claro; la base es la última defensa. Es la llave **compuesta**: el mismo número de lote se puede repetir en piezas distintas |
+| La cantidad es mayor a cero | `CHECK` en la tabla, Negocio y la pantalla | Tres capas de defensa. La pantalla avisa rápido, Negocio es la que decide, el `CHECK` evita datos malos si alguien entra por otro lado |
+| El turno es 1, 2 o 3 | `CHECK`, Negocio y un combo con solo esas opciones | Mismo criterio |
+| La fecha no es futura | Negocio y la pantalla (`max` del calendario) | **No** en la tabla: un `CHECK` con la fecha actual no es buena práctica, porque se evalúa al insertar y no vuelve a validarse |
+
+Acciones del handler: `listar` (GET, con `piezaId`, `desde` y `hasta` opcionales), `guardar` (POST, inserta o actualiza según `loteId`), `eliminar` (POST, eliminación lógica) y `exportar` (GET, el mismo listado como Excel).
+
+## 9. SQL: la tabla `Lotes`
+
+📖 [CREATE TABLE](https://learn.microsoft.com/es-es/sql/t-sql/statements/create-table-transact-sql) · [Restricciones CHECK](https://learn.microsoft.com/es-es/sql/relational-databases/tables/create-check-constraints) · [Restricciones UNIQUE](https://learn.microsoft.com/es-es/sql/relational-databases/tables/create-unique-constraints)
+
+Ejecuta en SSMS, sobre la base del curso:
+
+```sql
+CREATE TABLE dbo.Lotes
+(
+      LoteId           INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Lotes PRIMARY KEY
+    , PiezaId          INT               NOT NULL CONSTRAINT FK_Lotes_Piezas REFERENCES dbo.Piezas (PiezaId)
+    , NumeroLote       VARCHAR(50)       NOT NULL
+    , Cantidad         INT               NOT NULL CONSTRAINT CK_Lotes_Cantidad CHECK (Cantidad > 0)
+    , FechaProduccion  DATE              NOT NULL
+    , Turno            TINYINT           NOT NULL CONSTRAINT CK_Lotes_Turno CHECK (Turno IN (1, 2, 3))
+    , Activo           BIT               NOT NULL CONSTRAINT DF_Lotes_Activo DEFAULT (1)
+    , FechaAlta        DATETIME2(0)      NOT NULL CONSTRAINT DF_Lotes_FechaAlta DEFAULT (SYSDATETIME())
+    , CONSTRAINT UQ_Lotes_Pieza_NumeroLote UNIQUE (PiezaId, NumeroLote)
+);
+```
+
+Para comprobar la relación de tres niveles (Cliente → Familia → Pieza → Lote):
+
+```sql
+-- Comprobar la relación de tres niveles: Cliente → Familia → Pieza → Lote
+SELECT
+      c.Nombre            AS Cliente
+    , f.Nombre            AS Familia
+    , p.NumeroParte       AS NumeroParte
+    , l.NumeroLote        AS NumeroLote
+    , l.Cantidad          AS Cantidad
+    , l.FechaProduccion   AS FechaProduccion
+    , l.Turno             AS Turno
+FROM
+    dbo.Lotes AS l
+INNER JOIN
+    dbo.Piezas AS p ON p.PiezaId = l.PiezaId
+INNER JOIN
+    dbo.Familias AS f ON f.FamiliaId = p.FamiliaId
+INNER JOIN
+    dbo.Clientes AS c ON c.ClienteId = f.ClienteId;
+```
+
+Pruebas con inserciones a mano: una cantidad de `0`, un turno de `4` y dos lotes con el mismo `PiezaId` y `NumeroLote` deben fallar por la restricción correspondiente; el mismo `NumeroLote` en dos piezas distintas sí se permite, porque la llave es compuesta. `usrCursoWeb` ya tiene permiso: el del día 2 es para todo el esquema `dbo`.
+
+## 10. Modelo
+
+**Archivo nuevo:** clic derecho en la carpeta `Modelos` → *Agregar → Clase* → `Lote.cs`. Reemplaza todo su contenido por:
+
+```csharp
+using System;
+
+namespace CursoWeb.Modelos
+{
+    public class Lote
+    {
+        public int LoteId { get; set; }
+        public int PiezaId { get; set; }
+        public string NumeroParte { get; set; }
+        public int FamiliaId { get; set; }
+        public string FamiliaNombre { get; set; }
+        public int ClienteId { get; set; }
+        public string ClienteNombre { get; set; }
+        public string NumeroLote { get; set; }
+        public int Cantidad { get; set; }
+        public DateTime FechaProduccion { get; set; }
+        public int Turno { get; set; }
+        public bool Activo { get; set; }
+        public DateTime FechaAlta { get; set; }
+    }
+}
+```
+
+| Pieza | Qué hace | Por qué |
+|---|---|---|
+| `PiezaId` | La columna que guarda la tabla | La relación |
+| `NumeroParte`, `FamiliaId`, `FamiliaNombre`, `ClienteId`, `ClienteNombre` | No son columnas de `Lotes` | Vienen de los `JOIN` y sirven para mostrar y para editar con los combos dependientes |
+| `Turno` como `int` | La columna es `TINYINT` | Se lee como `byte` y se convierte; en C# y en JSON es un número |
