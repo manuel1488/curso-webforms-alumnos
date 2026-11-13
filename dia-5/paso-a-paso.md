@@ -390,3 +390,318 @@ Cuando algo falla, casi siempre está en uno de estos pasos. Si sabes en cuál, 
 Haz lo mismo con **Guardar**. Cambia: es `POST`, el cuerpo lleva JSON, Negocio normaliza y valida, y Datos hace `INSERT`. La respuesta vuelve con `ok` y `mensaje`.
 
 Para practicar: explícale a un compañero, con tu proyecto abierto, qué pasa desde el clic hasta que la tabla cambia.
+
+---
+
+> **Bloque 2 · Exportar a Excel**
+
+Después del filtro, exportamos a Excel lo que la tabla muestra. Tres ideas:
+
+- **Una librería**, ClosedXML, escribe el Excel por nosotros. Se instala con NuGet.
+- **Una sola consulta.** El Excel usa el mismo `Listar` que la tabla, con el mismo filtro: no pueden discrepar.
+- **El handler ahora responde un archivo**, no JSON. Dos encabezados HTTP le dicen al navegador qué es y que lo descargue.
+
+## 4. ClosedXML: crear un Excel
+
+📖 [Microsoft: qué es NuGet](https://learn.microsoft.com/es-es/nuget/what-is-nuget) · [Microsoft: Install-Package en la consola de Visual Studio](https://learn.microsoft.com/es-es/nuget/consume-packages/install-use-packages-powershell) · [Microsoft: `packages.config`](https://learn.microsoft.com/es-es/nuget/reference/packages-config) · [Microsoft: `MemoryStream`](https://learn.microsoft.com/es-es/dotnet/api/system.io.memorystream) · [ClosedXML: documentación](https://docs.closedxml.io/en/latest/)
+
+### Instalar con NuGet
+
+En Visual Studio: *Herramientas → Administrador de paquetes NuGet → Consola del Administrador de paquetes*. Verifica que **Proyecto predeterminado** diga `CursoWeb` y ejecuta:
+
+```powershell
+Install-Package ClosedXML -Version 0.105.1
+```
+
+Compilar con **Ctrl+Shift+B**. Debe compilar sin errores.
+
+Qué pasó en tu proyecto:
+
+| Dónde | Qué cambió | Por qué |
+|---|---|---|
+| `packages.config` | Aparecen 12 paquetes nuevos, no solo `ClosedXML` | ClosedXML **depende** de otras librerías (`DocumentFormat.OpenXml` para escribir el formato de Office, `SixLabors.Fonts` para medir texto, `System.Memory`, etc.). NuGet instala las dependencias solo |
+| `CursoWeb.csproj` | Una referencia nueva por cada DLL | Es lo que permite escribir `using ClosedXML.Excel;` |
+| `Web.config` | Cuatro `bindingRedirect` nuevos (`System.Memory`, `System.Buffers`, `System.Numerics.Vectors`, `System.Runtime.CompilerServices.Unsafe`) | Cuando dos librerías piden versiones distintas de la misma DLL, el redireccionamiento le dice a .NET cuál usar. NuGet lo agrega solo; si faltara, la aplicación falla **al ejecutar**, no al compilar |
+| `bin/` | Las DLL de todas las librerías | Al publicar en el servidor, `bin/` viaja con el sitio: **el servidor no necesita internet ni NuGet** |
+
+Nota: la conexión a internet se necesita solo para **instalar** el paquete. Esto es lo que distingue NuGet de un CDN: no hay descargas desde el navegador del usuario.
+
+Se instala una **versión fija** (`-Version 0.105.1`) para que todos tengan la misma. La documentación de ClosedXML recomienda leer sus notas de versión antes de actualizar, porque su API puede cambiar.
+
+### Crear el libro: `ExportarExcel`
+
+📖 [ClosedXML: documentación](https://docs.closedxml.io/en/latest/)
+
+**Agregar** a `Negocio/PiezasNegocio.cs`.
+
+*1. Los `using` de arriba.*
+
+Antes:
+
+```csharp
+using System.Collections.Generic;
+using CursoWeb.Datos;
+```
+
+Después:
+
+```csharp
+using System.Collections.Generic;
+using System.IO;
+using ClosedXML.Excel;
+using CursoWeb.Datos;
+```
+
+*2. El método, antes de `Guardar`.*
+
+```csharp
+        // Genera el Excel de las piezas con los mismos filtros del listado y regresa los bytes del archivo
+        public byte[] ExportarExcel(int clienteId, int familiaId)
+        {
+            var piezas = datos.Listar(clienteId, familiaId);
+
+            using (var libro = new XLWorkbook())
+            {
+                var hoja = libro.AddWorksheet("Piezas");
+
+                hoja.Cell(1, 1).Value = "Cliente";
+                hoja.Cell(1, 2).Value = "Familia";
+                hoja.Cell(1, 3).Value = "Número de parte";
+                hoja.Cell(1, 4).Value = "Descripción";
+                hoja.Cell(1, 5).Value = "Alta";
+                hoja.Row(1).Style.Font.Bold = true;
+
+                int fila = 2;
+                foreach (var p in piezas)
+                {
+                    hoja.Cell(fila, 1).Value = p.ClienteNombre;
+                    hoja.Cell(fila, 2).Value = p.FamiliaNombre;
+                    hoja.Cell(fila, 3).Value = p.NumeroParte;
+                    hoja.Cell(fila, 4).Value = p.Descripcion;
+                    hoja.Cell(fila, 5).Value = p.FechaAlta;
+                    fila++;
+                }
+
+                hoja.Column(5).Style.DateFormat.Format = "dd/MM/yyyy HH:mm";
+                hoja.Columns().AdjustToContents();
+
+                using (var memoria = new MemoryStream())
+                {
+                    libro.SaveAs(memoria);
+                    return memoria.ToArray();
+                }
+            }
+        }
+```
+
+| Pieza | Qué hace | Por qué |
+|---|---|---|
+| `datos.Listar(clienteId, familiaId)` | Pide las piezas, con el filtro | **La misma consulta** del listado: el Excel y la tabla no pueden discrepar |
+| `new XLWorkbook()` dentro de `using` | Crea un libro de Excel en memoria | `using` lo libera al terminar, como `SqlConnection` |
+| `AddWorksheet("Piezas")` y `Cell(fila, columna)` | Crea una hoja y escribe en la celda de esa fila y columna | Como en Excel: fila 1 para los encabezados, datos desde la 2 |
+| `.Value = p.FechaAlta` | Escribe una **fecha**, no un texto | Excel la reconoce como fecha: se puede ordenar y filtrar |
+| `DateFormat.Format` | Cómo se **ve** la fecha | El valor es el mismo; solo cambia la presentación |
+| `AdjustToContents()` | Ajusta el ancho de las columnas al contenido | Mide el texto con fuentes. En Windows las toma de `%SYSTEMROOT%\Fonts`; la documentación de ClosedXML advierte de errores de fuentes en Linux y servicios en la nube |
+| `MemoryStream` y `SaveAs(memoria)` | Guarda el libro en memoria, no en disco | El servidor no deja archivos temporales. Se entrega con `ToArray()` |
+| `byte[]` como resultado | Negocio regresa **los bytes**, no escribe la respuesta | Negocio no sabe de HTTP: quien responde es el handler. Así esta clase sirve también fuera de la web |
+
+## 5. El handler de exportación
+
+📖 [Microsoft: `HttpResponse.OutputStream`](https://learn.microsoft.com/es-es/dotnet/api/system.web.httpresponse.outputstream) · [Microsoft: `HttpResponse.AddHeader` (la página indica usar `AppendHeader`)](https://learn.microsoft.com/es-es/dotnet/api/system.web.httpresponse.addheader) · [Microsoft: `Int32.TryParse`](https://learn.microsoft.com/es-es/dotnet/api/system.int32.tryparse)
+
+| Encabezado | Qué le dice al navegador | Valor de hoy |
+|---|---|---|
+| `Content-Type` (`ContentType`) | Qué clase de contenido viene | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` es el tipo de un `.xlsx` |
+| `Content-Disposition` | Qué hacer con él: mostrarlo o **descargarlo**, y con qué nombre | `attachment; filename=Piezas_….xlsx` |
+
+El cuerpo de la respuesta ya no es texto: son los bytes del archivo, y se escriben en `Response.OutputStream`.
+
+**Cambiar y agregar** en `Handlers/PiezasHandler.ashx.cs`.
+
+*1. Agregar un método auxiliar*, antes de `LeerCuerpo`:
+
+```csharp
+        // Lee un número de la URL. Si falta o no es número, regresa 0
+        private static int LeerEntero(HttpContext context, string nombre)
+        {
+            int valor;
+            int.TryParse(context.Request.QueryString[nombre], out valor);
+            return valor;
+        }
+```
+
+*2. `listar` usa el método, y se agrega `exportar`.*
+
+Antes:
+
+```csharp
+                    case "listar":
+                        int clienteId;
+                        int familiaId;
+                        int.TryParse(context.Request.QueryString["clienteId"], out clienteId);
+                        int.TryParse(context.Request.QueryString["familiaId"], out familiaId);
+                        respuesta = negocio.Listar(clienteId, familiaId);
+                        break;
+```
+
+Después:
+
+```csharp
+                    case "listar":
+                        respuesta = negocio.Listar(LeerEntero(context, "clienteId"), LeerEntero(context, "familiaId"));
+                        break;
+
+                    case "exportar":
+                        byte[] archivo = negocio.ExportarExcel(LeerEntero(context, "clienteId"), LeerEntero(context, "familiaId"));
+                        context.Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                        context.Response.AppendHeader("Content-Disposition", "attachment; filename=Piezas_" + DateTime.Now.ToString("yyyyMMdd_HHmm") + ".xlsx");
+                        context.Response.OutputStream.Write(archivo, 0, archivo.Length);
+                        return;
+```
+
+| Pieza | Qué hace | Por qué |
+|---|---|---|
+| `LeerEntero` | Lee un número de la URL y regresa `0` si falta | Ahora se necesita en **dos** `case`. Las variables de un `switch` viven en todo el bloque: dos `case` no pueden declarar `clienteId`. Un método auxiliar evita repetir el `TryParse` |
+| `negocio.ExportarExcel(...)` **antes** de tocar la respuesta | Genera el archivo primero | Si algo falla, el `catch` todavía puede responder un JSON de error: nada de la respuesta se ha escrito |
+| `ContentType = "application/vnd…"` | Reemplaza el `application/json` del inicio | El handler empieza declarando JSON; aquí cambia porque este caso responde otra cosa |
+| `AppendHeader("Content-Disposition", …)` | `attachment` = **descárgalo**, no lo muestres; `filename` = nombre sugerido | Sin `attachment` el navegador decide por su cuenta si lo muestra o lo descarga. `AppendHeader` es el método que recomienda la documentación (`AddHeader` es el equivalente heredado) |
+| `DateTime.Now.ToString("yyyyMMdd_HHmm")` en el nombre | Cada descarga con un nombre distinto | El navegador no sobrescribe: `Piezas_20261111_2105.xlsx` |
+| `OutputStream.Write(archivo, 0, archivo.Length)` | Escribe los bytes en el cuerpo de la respuesta | Es el equivalente binario de `Response.Write` |
+| `return;` en lugar de `break;` | Termina el método **sin** pasar por el `Response.Write(JsonConvert…)` del final | Si no saliera aquí, se escribiría un JSON pegado al final del archivo, y ahí no debe ir |
+
+Prueba rápida en el navegador, con la aplicación corriendo:
+- `Handlers/PiezasHandler.ashx?accion=exportar` → baja `Piezas_….xlsx` con todas las piezas.
+- `Handlers/PiezasHandler.ashx?accion=exportar&clienteId=1` → baja el archivo solo con ese cliente.
+- Ábrelo en Excel.
+
+Limitación: si `ExportarExcel` falla, el handler responde un JSON de error y el navegador lo muestra como texto, porque la descarga se pide con una navegación y no con AJAX. Para este curso se acepta.
+
+| Si pasa esto | Revisa |
+|---|---|
+| Visual Studio no reconoce `XLWorkbook` | El `using ClosedXML.Excel;`, y que el paquete esté instalado en el proyecto (`packages.config`) |
+| El archivo baja pero Excel no lo abre o se queja | Que `exportar` termine con `return;` y no con `break;` |
+| Baja como `.ashx` o se muestra como texto | El `Content-Disposition` y el `ContentType` |
+| Error de «No se puede cargar el archivo o ensamblado» al ejecutar | Los `bindingRedirect` en `Web.config`: NuGet los agrega al instalar. Reinstala el paquete si faltan |
+| Exporta todo aunque filtraste | Que `LeerEntero` lea `clienteId` y `familiaId` con esos nombres exactos, y la URL en Network |
+
+## 6. Descarga desde JavaScript
+
+📖 [jQuery: `.on()`](https://api.jquery.com/on/) · [jQuery: `.val()`](https://api.jquery.com/val/)
+
+**Cambiar y agregar** en `Piezas.aspx` y en `js/piezas.js`.
+
+### La página
+
+**Agregar** el botón en `Piezas.aspx`, después de **Limpiar**.
+
+Antes:
+
+```html
+            <button type="button" id="btnLimpiarFiltro" class="btn btn-outline-secondary">Limpiar</button>
+```
+
+Después:
+
+```html
+            <button type="button" id="btnLimpiarFiltro" class="btn btn-outline-secondary">Limpiar</button>
+            <button type="button" id="btnExportar" class="btn btn-success">Exportar a Excel</button>
+```
+
+### `js/piezas.js`
+
+*1. Una variable nueva*, arriba, con las demás.
+
+Antes:
+
+```javascript
+let modalConfirmar;
+```
+
+Después:
+
+```javascript
+let modalConfirmar;
+let filtroAplicado = ''; // los filtros con los que se pidió la tabla; el Excel usa los mismos
+```
+
+*2. El evento del botón*, al arrancar.
+
+Antes:
+
+```javascript
+    $('#btnLimpiarFiltro').on('click', limpiarFiltro);
+```
+
+Después:
+
+```javascript
+    $('#btnLimpiarFiltro').on('click', limpiarFiltro);
+    $('#btnExportar').on('click', exportar);
+```
+
+*3. `urlListado` y `recargarTabla` cambian, y aparecen `parametrosFiltro` y `exportar`.*
+
+Antes:
+
+```javascript
+// La URL del listado lleva los filtros elegidos; 0 significa "todos"
+function urlListado() {
+    return 'Handlers/PiezasHandler.ashx?accion=listar'
+        + '&clienteId=' + (Number($('#cboFiltroCliente').val()) || 0)
+        + '&familiaId=' + (Number($('#cboFiltroFamilia').val()) || 0);
+}
+
+// Pide la tabla otra vez, con los filtros que hay en los combos
+function recargarTabla() {
+    $('#tblPiezas').bootstrapTable('refresh', { url: urlListado() });
+}
+```
+
+Después:
+
+```javascript
+// Los filtros que hay en los combos, listos para agregarse a una URL; 0 significa "todos"
+function parametrosFiltro() {
+    return '&clienteId=' + (Number($('#cboFiltroCliente').val()) || 0)
+        + '&familiaId=' + (Number($('#cboFiltroFamilia').val()) || 0);
+}
+
+// La URL del listado lleva los filtros con los que se pidió la tabla
+function urlListado() {
+    return 'Handlers/PiezasHandler.ashx?accion=listar' + filtroAplicado;
+}
+
+// Pide la tabla otra vez, con los filtros que hay en los combos
+function recargarTabla() {
+    filtroAplicado = parametrosFiltro();
+    $('#tblPiezas').bootstrapTable('refresh', { url: urlListado() });
+}
+
+// Descarga el Excel con los mismos filtros que tiene la tabla
+function exportar() {
+    window.location = 'Handlers/PiezasHandler.ashx?accion=exportar' + filtroAplicado;
+}
+```
+
+| Pieza | Qué hace | Por qué |
+|---|---|---|
+| `window.location = url` | Le dice al navegador que navegue a esa URL | Como la respuesta es un archivo con `attachment`, el navegador lo descarga en lugar de cambiar de página |
+| `filtroAplicado` | Guarda los filtros con los que se pidió la tabla por última vez | **El Excel debe coincidir con lo que se ve.** Si el usuario cambia un combo y no pulsa **Buscar**, la tabla sigue mostrando el filtro anterior, y el Excel también |
+| `parametrosFiltro()` | Lee los combos y arma `&clienteId=…&familiaId=…` | Antes esa lectura estaba dentro de `urlListado`. Ahora se usa en un solo lugar: `recargarTabla` |
+| `urlListado()` sin leer los combos | Usa `filtroAplicado` | Al arrancar es `''` (sin filtros): el primer listado trae todo, como antes |
+| `exportar` | Reusa `filtroAplicado` en otra acción | Mismo filtro, otra forma de entregar el resultado |
+
+### Probar
+
+1. Compila y ejecuta. **Exportar a Excel** sin filtro: baja el archivo con todas las piezas.
+2. Elige un cliente → **Buscar** → **Exportar a Excel**: el archivo trae solo ese cliente.
+3. Elige además una familia → **Buscar** → **Exportar**: solo esa familia.
+4. Elige otro cliente **sin pulsar Buscar** y exporta: el archivo trae lo que muestra la tabla, no lo que dicen los combos.
+5. En Excel: acentos bien en *Número de parte* y *Descripción*, y la columna **Alta** como fecha.
+
+| Si pasa esto | Revisa |
+|---|---|
+| El botón no hace nada | Que `#btnExportar` esté enlazado en el arranque, y F12 → Console |
+| La página se queda en blanco o muestra texto raro | La acción en la URL: debe ser `accion=exportar` (minúsculas) |
+| Exporta todo aunque filtraste | Que `recargarTabla()` actualice `filtroAplicado` **antes** de pedir la tabla |
+| Los acentos salen raros en Excel | Que el `.cs` se guardó en UTF-8 (Visual Studio lo hace por omisión) |

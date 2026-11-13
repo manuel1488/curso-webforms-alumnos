@@ -6,6 +6,7 @@
 
 ## Temas
 - Filtro en el servidor: el listado de Piezas por cliente y familia.
+- Instalar una librería con NuGet (ClosedXML).
 - Repaso: el recorrido de una petición desde el botón hasta SQL Server y de regreso.
 - Generación de archivos Excel en el servidor.
 - Descarga desde JavaScript a través de un handler.
