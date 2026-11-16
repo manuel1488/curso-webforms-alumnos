@@ -1,43 +1,28 @@
-# Día 5 · Consolidación y exportación
+# Día 5 · Excel, integrador y publicación
 
 ## Objetivos
-- Cerrar los tres catálogos y repasar el flujo completo.
-- Exportar información filtrada a Excel.
+- Exportar información a Excel desde un handler.
+- Aplicar sin ayuda lo aprendido en un ejercicio integrador.
+- Publicar la aplicación en IIS.
 
 ## Temas
-- Filtro en el servidor: el listado de Piezas por cliente y familia.
 - Instalar una librería con NuGet (ClosedXML).
-- Repaso: el recorrido de una petición desde el botón hasta SQL Server y de regreso.
 - Generación de archivos Excel en el servidor.
 - Descarga desde JavaScript a través de un handler.
-- Exportación que respeta los filtros de la pantalla.
-- Arranque del ejercicio integrador: requerimiento, tabla `Lotes` y modelo `Lote` (el resto se hace el día 6).
-
-## Requerimiento del ejercicio integrador: Producción por lote
-
-**Contexto.** En planta se necesita saber cuántas piezas se produjeron, en qué lote y en qué turno, para poder rastrear un problema de calidad hasta su origen.
-
-**Requerimiento.** Construye una pantalla **Producción** que permita:
-
-1. Registrar un lote: cliente → familia → pieza (combos dependientes), número de lote, cantidad, fecha y turno (1, 2 o 3).
-2. Consultar lotes filtrando por pieza y rango de fechas.
-3. Editar y eliminar un lote.
-4. Exportar a Excel la consulta filtrada.
-
-**Reglas.**
-- El número de lote no se repite para la misma pieza.
-- La cantidad debe ser mayor a cero.
-- La fecha no puede ser futura.
-
-**Entregable.** La funcionalidad completa siguiendo la misma arquitectura del curso: página, handler, negocio, datos y tabla en SQL Server. Tú diseñas la tabla.
+- Ejercicio integrador: exportar Clientes a Excel.
+- Presentación del integrador opcional «Producción por lote» y creación de su tabla (`sql/04-lotes.sql`).
+- Desarrollo vs. producción: `debug`, errores personalizados y cadenas de conexión.
+- Publicación desde Visual Studio, Application Pool, sitio y permisos en IIS y en SQL Server.
 
 ## Ejercicios
 1. Exporta a Excel el listado de Piezas.
-2. Haz que la exportación respete el cliente y la familia seleccionados.
-3. Escribe la tabla `Lotes` y la clase `Lote` del ejercicio integrador.
+2. **Integrador:** exporta a Excel el listado de Clientes, con Piezas como modelo.
+3. Ejecuta `sql/04-lotes.sql` en SSMS para dejar lista la tabla del integrador opcional.
+4. Publica la aplicación en una carpeta, crea el sitio en IIS y ábrela desde el navegador.
 
 ## Material
-- [Paso a paso del día](paso-a-paso.md) (el integrador arranca en las secciones 7 a 10)
+- [Paso a paso del día](paso-a-paso.md)
+- Material opcional: [`dia-6/`](../dia-6/README.md) (filtro de Piezas y ejercicio «Producción por lote»)
 
 ## Resultado esperado
-Un botón que descarga un Excel con la información filtrada. Al final del día tienes la tabla `Lotes` creada y el modelo `Lote` listo para continuar el integrador.
+Un botón que descarga un Excel en Piezas y en Clientes, y la aplicación corriendo en IIS con los tres catálogos y la exportación.

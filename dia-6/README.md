@@ -1,22 +1,23 @@
-# Día 6 · Ejercicio integrador y publicación
+# Material opcional · Filtro de Piezas y «Producción por lote»
 
-## Objetivos
-- Construir una funcionalidad completa de forma independiente.
-- Publicar la aplicación en IIS.
+Esta carpeta **no se imparte en clase**. Es para que practiques por tu cuenta después del curso.
 
-## Temas
-- Desarrollo y revisión del ejercicio integrador (el requerimiento está en el [README del día 5](../dia-5/README.md)).
-- Publicación desde Visual Studio.
-- IIS: Application Pool, sitio web y permisos.
-- Desarrollo vs. producción: cadenas de conexión, `debug` y errores personalizados.
+## Qué hay aquí
 
-## Ejercicios
-1. Termina el ejercicio integrador (pantalla Producción por lote).
-2. Publica la aplicación en el IIS de tu equipo y ábrela desde el navegador.
+| Material | Qué es |
+|---|---|
+| [`opcional-filtro-excel-con-filtro-y-lotes.md`](opcional-filtro-excel-con-filtro-y-lotes.md) | Filtro por cliente y familia en el listado de Piezas, exportación a Excel que respeta el filtro y el arranque del integrador (requerimiento, tabla `Lotes` y modelo `Lote`) |
+| [`paso-a-paso.md`](paso-a-paso.md) | El resto del integrador «Producción por lote»: datos, negocio, handler, página y JavaScript |
+| [`final/`](final/) | La solución completa del integrador |
 
-## Material
-- [Paso a paso del integrador](paso-a-paso.md)
-- [Solución completa](final/)
+## Cómo usarlo
+
+1. Descarga el repositorio actualizado (*Git → Extraer* en Visual Studio, o `git pull origin main`).
+2. **Ejecuta [`sql/04-lotes.sql`](../sql/04-lotes.sql) en SSMS.** Crea la tabla `Lotes`; sin ella la solución de `final/` no funciona. En clase se ejecuta junto con el instructor.
+3. Para abrir `final/`: copia `connectionStrings.ejemplo.config` como `connectionStrings.config` (en la misma carpeta) y escribe tu contraseña, como en el día 2.
+4. Para practicar: parte de tu proyecto del día 5, haz primero el filtro y el Excel con filtro (secciones 1 a 6 del primer archivo) y luego intenta el integrador tú solo con el requerimiento y la tabla; compara con el paso a paso solo al terminar cada capa.
+
+> Algunos enlaces internos del primer archivo apuntan a `../dia-4/` y a `../dia-6/paso-a-paso.md`; si alguno no abre, busca el archivo en esas carpetas.
 
 ## Resultado esperado
-La aplicación completa corre en IIS con los tres catálogos, la exportación y el ejercicio integrador.
+Piezas con filtro por cliente y familia, y una pantalla **Producción** que registra, consulta, edita, elimina y exporta lotes.

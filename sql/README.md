@@ -7,6 +7,7 @@
 | 2 | Base `CursoWeb`, `Clientes` y el usuario `usrCursoWeb` |
 | 3 | `Familias` (relacionada con Clientes) |
 | 4 | `Piezas` (relacionada con Familias) |
+| 5 | `Lotes` (relacionada con Piezas): solo para el ejercicio opcional «Producción por lote» de `dia-6/`; en clase se ejecuta el script, no se escribe |
 
 Úsalos para:
 - **Comparar** tu script si algo no funciona o te falta una columna o restricción.
@@ -17,6 +18,7 @@
 | [`01-esquema.sql`](01-esquema.sql) | Base de datos y las tres tablas completas |
 | [`02-datos-prueba.sql`](02-datos-prueba.sql) | Registros de ejemplo para las tres tablas (requiere el esquema completo) |
 | [`03-usuario.sql`](03-usuario.sql) | El usuario dedicado `usrCursoWeb` con permisos mínimos (día 2). Requiere la autenticación mixta activa |
+| [`04-lotes.sql`](04-lotes.sql) | La tabla `Lotes` del ejercicio opcional «Producción por lote». Ejecútala **después** del esquema completo y antes de abrir `dia-6/final` |
 
 ## Diagrama entidad-relación
 

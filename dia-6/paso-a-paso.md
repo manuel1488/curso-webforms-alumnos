@@ -1,6 +1,6 @@
 # Paso a paso · Día 6 · Ejercicio integrador
 
-Seguimos con el ejercicio integrador que arrancó el día 5 (requerimiento, tabla `Lotes` y modelo `Lote`: [secciones 7 a 10 del paso a paso del día 5](../dia-5/paso-a-paso.md)). Hoy construyes las capas que faltan, una por una, con el instructor. Este paso a paso es el material para compararlo con lo tuyo o para continuar si te atrasas: cada sección trae el archivo completo, qué hace y por qué. Compila (**Ctrl+Shift+B**) al terminar cada capa antes de seguir con la siguiente.
+Este es el ejercicio integrador **opcional** «Producción por lote». El requerimiento, el diseño, la tabla `Lotes` y el modelo `Lote` están en las secciones 7 a 10 de [`opcional-filtro-excel-con-filtro-y-lotes.md`](opcional-filtro-excel-con-filtro-y-lotes.md); el script de la tabla, en [`sql/04-lotes.sql`](../sql/04-lotes.sql). Aquí construyes las capas que faltan, una por una. Este paso a paso es el material para compararlo con lo tuyo o para continuar si te atrasas: cada sección trae el archivo completo, qué hace y por qué. Compila (**Ctrl+Shift+B**) al terminar cada capa antes de seguir con la siguiente.
 
 La solución completa del proyecto está en [`final/`](final/).
 
