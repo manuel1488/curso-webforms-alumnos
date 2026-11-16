@@ -1,0 +1,58 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Site.master.cs" Inherits="CursoWeb.Site" %>
+
+<!DOCTYPE html>
+
+<html>
+<head runat="server">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Curso Web Forms</title>
+    <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="lib/bootstrap-table/bootstrap-table.min.css" rel="stylesheet" />
+    <asp:ContentPlaceHolder ID="head" runat="server">
+    </asp:ContentPlaceHolder>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header class="bg-dark text-white py-3">
+            <div class="container">
+                <span class="fs-4 fw-bold">Curso Web Forms</span>
+            </div>
+        </header>
+
+        <nav class="navbar navbar-expand-md bg-body-tertiary border-bottom">
+            <div class="container">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu"
+                    aria-controls="menu" aria-expanded="false" aria-label="Abrir menú">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="menu">
+                    <div class="navbar-nav">
+                        <a class="nav-link" href="Default.aspx">Inicio</a>
+                        <a class="nav-link" href="Clientes.aspx">Clientes</a>
+                        <a class="nav-link" href="Familias.aspx">Familias</a>
+                        <a class="nav-link" href="Piezas.aspx">Piezas</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="container py-4">
+            <asp:ContentPlaceHolder ID="MainContent" runat="server">
+            </asp:ContentPlaceHolder>
+        </main>
+
+        <footer class="border-top py-3">
+            <div class="container text-body-secondary small">Curso de ASP.NET Web Forms</div>
+        </footer>
+    </form>
+
+    <script src="lib/jquery/jquery-3.7.1.min.js"></script>
+    <script src="lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+    <script src="lib/bootstrap-table/locale/bootstrap-table-es-MX.min.js"></script>
+
+    <asp:ContentPlaceHolder ID="Scripts" runat="server">
+    </asp:ContentPlaceHolder>
+</body>
+</html>
