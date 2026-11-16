@@ -1,8 +1,12 @@
 # Paso a paso · Día 6 · Ejercicio integrador
 
-Este es el ejercicio integrador **opcional** «Producción por lote». El requerimiento, el diseño, la tabla `Lotes` y el modelo `Lote` están en las secciones 7 a 10 de [`opcional-filtro-excel-con-filtro-y-lotes.md`](opcional-filtro-excel-con-filtro-y-lotes.md); el script de la tabla, en [`sql/04-lotes.sql`](../sql/04-lotes.sql). Aquí construyes las capas que faltan, una por una. Este paso a paso es el material para compararlo con lo tuyo o para continuar si te atrasas: cada sección trae el archivo completo, qué hace y por qué. Compila (**Ctrl+Shift+B**) al terminar cada capa antes de seguir con la siguiente.
+Este paso a paso explica **cómo se construyó** el ejercicio integrador «Producción por lote», capa por capa. **No tienes que construirlo para seguir la clase:** el proyecto de partida, [`inicio/`](inicio/), ya lo trae hecho. Aquí lo consultas para repasarlo o para ver el código completo de cada archivo, qué hace y por qué.
 
-La solución completa del proyecto está en [`final/`](final/).
+**Antes de abrir `inicio/`:** copia `connectionStrings.ejemplo.config` como `connectionStrings.config` con tu contraseña y ejecuta [`sql/04-lotes.sql`](../sql/04-lotes.sql) en SSMS. La tabla `Lotes` no viene incluida en tu base de datos y la pantalla **Producción** no abre sin ella. El detalle de qué incluye `inicio/` y qué falta está en el [`README`](README.md) de esta carpeta.
+
+El requerimiento, el diseño, la tabla `Lotes` y el modelo `Lote` están en las secciones 7 a 10 de [`opcional-filtro-excel-con-filtro-y-lotes.md`](opcional-filtro-excel-con-filtro-y-lotes.md). Si quieres construirlo tú, hazlo por capas y compila (**Ctrl+Shift+B**) al terminar cada una antes de seguir con la siguiente.
+
+La solución completa, con Excel, está en [`final/`](final/).
 
 ---
 
