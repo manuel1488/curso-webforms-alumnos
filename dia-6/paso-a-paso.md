@@ -387,7 +387,31 @@ La ruta no cambia nada de lo demás: IIS sirve el sitio desde la **Ruta de acces
 
 📖 [Microsoft: identidades del grupo de aplicaciones](https://learn.microsoft.com/es-es/iis/manage/configuring-security/application-pool-identities) · [Microsoft: permisos de carpeta para la identidad del grupo](https://learn.microsoft.com/es-es/aspnet/web-forms/overview/deployment/visual-studio-web-deployment/setting-folder-permissions)
 
-Necesitas IIS con **ASP.NET 4.8** activado (*Activar o desactivar las características de Windows*) y permisos de administrador. Si no puedes instalarlo, sigue la clase en la pantalla del instructor.
+### Antes: comprueba que tienes IIS
+
+📖 [Microsoft: instalar IIS y los módulos de ASP.NET](https://learn.microsoft.com/es-es/iis/application-frameworks/scenario-build-an-aspnet-website-on-iis/configuring-step-1-install-iis-and-asp-net-modules) (la guía es de Windows 8 y ASP.NET 4.5; los pasos son los mismos)
+
+IIS no viene activado en un Windows de escritorio. Hazlo **antes de la clase**: instalarlo necesita permisos de administrador. Si no puedes, avisa al instructor: ese día sigues la clase en su pantalla.
+
+1. **Comprueba si ya está.** Pulsa **Win + R**, escribe `inetmgr` y Enter. Si se abre el *Administrador de Internet Information Services (IIS)*, IIS ya está instalado: pasa al paso 3. Si Windows no lo encuentra, falta instalarlo.
+
+2. **Actívalo.** Busca en Inicio *Activar o desactivar las características de Windows* (también está en *Panel de control → Programas*). Marca **Internet Information Services**. La casilla queda a medias (un cuadro relleno): significa que se activó solo una parte, que es lo correcto.
+
+   ![Características de Windows con Internet Information Services marcado a medias](img/02a-windows-caracteristicas.png)
+
+   Despliega la rama y comprueba que **Consola de administración de IIS** esté marcada: es el Administrador de IIS que usaremos.
+
+   ![Internet Information Services desplegado: Consola de administración de IIS marcada y Servicios World Wide Web a medias](img/02b-windows-iis-consola.png)
+
+3. **Comprueba ASP.NET 4.8.** En *Servicios World Wide Web → Características de desarrollo de aplicaciones* marca **ASP.NET 4.8**. Windows marca solo lo que necesita: **Extensibilidad de .NET 4.8**, **Extensiones ISAPI** y **Filtros ISAPI**. Sin ASP.NET 4.8 el sitio no arranca. En el equipo del instructor quedaron marcados, además, el contenido estático, el documento predeterminado, los errores HTTP, el examen de directorios, la compresión de contenido estático, el registro HTTP y el filtrado de solicitudes. Si el tuyo trae algo más, no pasa nada.
+
+   ![Características de desarrollo de aplicaciones con ASP.NET 4.8, Extensibilidad de .NET 4.8, Extensiones ISAPI y Filtros ISAPI marcados](img/02c-windows-aspnet48.png)
+
+4. Pulsa **Aceptar** y espera a que Windows termine. Repite el paso 1: `inetmgr` debe abrir el Administrador de IIS.
+
+También puedes comprobarlo abriendo `http://localhost` en el navegador: debe aparecer la página de bienvenida de IIS (el sitio *Default Web Site*, en el puerto 80). ⚠ Sin probar en tu equipo si otro programa ya usa el puerto 80.
+
+En Windows Server la instalación es otra (*Administrador del servidor → Agregar roles y características*) y no se cubre aquí. Las capturas son de Windows 11.
 
 **El Administrador de IIS.** Ábrelo con **Win + R**, escribe `inetmgr` y Enter. Tiene tres zonas: a la izquierda **Conexiones**, el árbol de tu equipo con **Grupos de aplicaciones** y **Sitios** (lo que selecciones ahí es lo que configuras); en el centro, la **página principal** de lo seleccionado, con íconos como *Cadenas de conexión* o *Autenticación*; y a la derecha **Acciones**, los comandos de lo seleccionado. Los íconos y los comandos cambian según selecciones el servidor o un sitio.
 

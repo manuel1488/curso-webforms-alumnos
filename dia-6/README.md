@@ -4,7 +4,7 @@ En esta sesión **todos parten del mismo proyecto**: la carpeta [`inicio/`](inic
 
 ## Publicación
 
-El día cierra con la publicación de la aplicación: desarrollo vs. producción, publicar a una carpeta (`C:\sitios\CursoWeb`), crear el Application Pool y el sitio en IIS, y dar los permisos en la carpeta y en SQL Server. El paso a paso está en la segunda parte de [`paso-a-paso.md`](paso-a-paso.md) (secciones 7 a 11), con las dos formas de dar acceso a SQL Server: identidad de Windows (incluida la gMSA) y login de SQL con permisos mínimos. Para el sitio publicado necesitas IIS con **ASP.NET 4.8** activado y permisos de administrador; si no puedes instalarlo, sigue la clase en la pantalla del instructor.
+El día cierra con la publicación de la aplicación: desarrollo vs. producción, publicar a una carpeta (`C:\sitios\CursoWeb`), crear el Application Pool y el sitio en IIS, y dar los permisos en la carpeta y en SQL Server. El paso a paso está en la segunda parte de [`paso-a-paso.md`](paso-a-paso.md) (secciones 7 a 11), con las dos formas de dar acceso a SQL Server: identidad de Windows (incluida la gMSA) y login de SQL con permisos mínimos. Para el sitio publicado necesitas IIS con **ASP.NET 4.8** activado y permisos de administrador. **Comprueba antes de la clase que lo tienes**: la sección 9 de `paso-a-paso.md` («Antes: comprueba que tienes IIS») explica cómo, con capturas. Si no puedes instalarlo, sigue la clase en la pantalla del instructor.
 
 ## De dónde se parte
 
