@@ -4,7 +4,7 @@ En esta sesión **todos parten del mismo proyecto**: la carpeta [`inicio/`](inic
 
 ## Publicación
 
-El día cierra con la publicación de la aplicación: desarrollo vs. producción, publicar a una carpeta (`C:\sitios\CursoWeb`), crear el Application Pool y el sitio en IIS, y dar los permisos en la carpeta y en SQL Server. El paso a paso está en [`paso-a-paso-publicacion.md`](paso-a-paso-publicacion.md). Para el sitio publicado necesitas IIS con **ASP.NET 4.8** activado y permisos de administrador; si no puedes instalarlo, sigue la clase en la pantalla del instructor.
+El día cierra con la publicación de la aplicación: desarrollo vs. producción, publicar a una carpeta (`C:\sitios\CursoWeb`), crear el Application Pool y el sitio en IIS, y dar los permisos en la carpeta y en SQL Server. El paso a paso está en la segunda parte de [`paso-a-paso.md`](paso-a-paso.md) (secciones 7 a 11), con las dos formas de dar acceso a SQL Server: identidad de Windows (incluida la gMSA) y login de SQL con permisos mínimos. Para el sitio publicado necesitas IIS con **ASP.NET 4.8** activado y permisos de administrador; si no puedes instalarlo, sigue la clase en la pantalla del instructor.
 
 ## De dónde se parte
 
@@ -34,9 +34,8 @@ El día cierra con la publicación de la aplicación: desarrollo vs. producción
 
 | Material | Qué es |
 |---|---|
-| [`paso-a-paso.md`](paso-a-paso.md) | El Excel de «Producción por lote» sobre `inicio/`: qué se agrega en cada capa, en formato Antes / Después. Cada capa trae también, para repasar, lo que ya viene hecho y por qué |
+| [`paso-a-paso.md`](paso-a-paso.md) | **Primera parte:** el Excel de «Producción por lote» sobre `inicio/`, en formato Antes / Después. **Segunda parte:** la publicación en IIS: de desarrollo a producción, publicar a una carpeta, IIS, identidad y permisos en SQL Server, y probar el sitio |
 | [`opcional-filtro-excel-con-filtro-y-lotes.md`](opcional-filtro-excel-con-filtro-y-lotes.md) | Cómo se construyó el filtro de Piezas y el Excel que respeta el filtro, y el requerimiento, la tabla y el modelo del integrador |
-| [`paso-a-paso-publicacion.md`](paso-a-paso-publicacion.md) | Publicación: de desarrollo a producción, publicar a una carpeta, IIS, permisos en SQL Server y probar el sitio publicado |
 | [`final/`](final/) | La solución completa, con Excel. Se libera al cierre de la sesión |
 
 > Algunos enlaces internos del segundo archivo apuntan a `../dia-4/` y a `../dia-6/paso-a-paso.md`; si alguno no abre, busca el archivo en esas carpetas.

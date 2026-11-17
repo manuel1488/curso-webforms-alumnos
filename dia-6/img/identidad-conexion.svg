@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="960" height="560" text-anchor="middle">
+  <title>Con qué identidad llega la aplicación a SQL Server en tres escenarios: IIS Express, IIS y SQL en la misma máquina, e IIS y SQL en servidores separados</title>
+  <style>
+    .tag { font-family: Consolas, 'Courier New', monospace; font-size: 18px; font-weight: 700; fill: #f5d042; }
+    .desc { font-family: 'Segoe UI', Arial, sans-serif; font-size: 15px; fill: #c9cdd3; }
+    .head { font-family: 'Segoe UI', Arial, sans-serif; font-size: 18px; font-weight: 700; fill: #ffffff; }
+    .box { fill: #1f2029; }
+    .arrow { stroke: #6b7080; stroke-width: 2; fill: none; marker-end: url(#p); }
+  </style>
+  <defs>
+    <marker id="p" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7080"/>
+    </marker>
+  </defs>
+  <rect width="960" height="560" fill="#0b0d14"/>
+
+  <text class="head" x="480" y="34">¿Con qué identidad llega la aplicación a SQL Server?</text>
+
+  <text class="head" x="480" y="76">1 · Desarrollo (IIS Express)</text>
+  <rect class="box" x="30" y="90" width="250" height="84" rx="14"/>
+  <text class="tag" x="155" y="124">IIS Express</text>
+  <text class="desc" x="155" y="150">corre con TU usuario de Windows</text>
+  <path class="arrow" d="M285,132 L335,132"/>
+  <rect class="box" x="340" y="90" width="290" height="84" rx="14"/>
+  <text class="tag" x="485" y="124">TU usuario</text>
+  <text class="desc" x="485" y="150">suele ser administrador: demasiado poder</text>
+  <path class="arrow" d="M635,132 L685,132"/>
+  <rect class="box" x="690" y="90" width="240" height="84" rx="14"/>
+  <text class="tag" x="810" y="124">SQL Server</text>
+  <text class="desc" x="810" y="150">por eso: usrCursoWeb (día 2)</text>
+
+  <text class="head" x="480" y="226">2 · IIS y SQL en la misma máquina</text>
+  <rect class="box" x="30" y="240" width="250" height="84" rx="14"/>
+  <text class="tag" x="155" y="274">Pool CursoWeb</text>
+  <text class="desc" x="155" y="300">un pool por aplicación</text>
+  <path class="arrow" d="M285,282 L335,282"/>
+  <rect class="box" x="340" y="240" width="290" height="84" rx="14"/>
+  <text class="tag" x="485" y="274">IIS APPPOOL\CursoWeb</text>
+  <text class="desc" x="485" y="300">identidad virtual, sin contraseña</text>
+  <path class="arrow" d="M635,282 L685,282"/>
+  <rect class="box" x="690" y="240" width="240" height="84" rx="14"/>
+  <text class="tag" x="810" y="274">SQL Server</text>
+  <text class="desc" x="810" y="300">CREATE LOGIN … FROM WINDOWS</text>
+
+  <text class="head" x="480" y="376">3 · IIS y SQL en servidores separados (lo común)</text>
+  <rect class="box" x="30" y="390" width="250" height="84" rx="14"/>
+  <text class="tag" x="155" y="424">Servidor IIS</text>
+  <text class="desc" x="155" y="450">pool con identidad por omisión</text>
+  <path class="arrow" d="M285,432 L335,432"/>
+  <rect class="box" x="340" y="390" width="290" height="84" rx="14"/>
+  <text class="tag" x="485" y="424">DOMINIO\IIS01$</text>
+  <text class="desc" x="485" y="450">cuenta del equipo: la comparten los pools</text>
+  <path class="arrow" d="M635,432 L685,432"/>
+  <rect class="box" x="690" y="390" width="240" height="84" rx="14"/>
+  <text class="tag" x="810" y="424">Otro servidor SQL</text>
+  <text class="desc" x="810" y="450">login de esa cuenta, o gMSA</text>
+
+  <text class="desc" x="480" y="512">Cuenta del equipo o gMSA: requieren dominio. Sin dominio: login de SQL con permisos mínimos.</text>
+  <text class="desc" x="480" y="536">La identidad virtual del escenario 2 solo existe dentro de esa máquina: no viaja por la red.</text>
+</svg>

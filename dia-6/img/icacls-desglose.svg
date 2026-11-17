@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" width="960" height="400" text-anchor="middle">
+  <title>Desglose del comando icacls: programa, carpeta, /grant, identidad y permisos (OI)(CI)RX</title>
+  <style>
+    .code { font-family: Consolas, 'Courier New', monospace; font-size: 22px; font-weight: 700; fill: #f5d042; }
+    .tag { font-family: Consolas, 'Courier New', monospace; font-size: 17px; font-weight: 700; fill: #f5d042; }
+    .desc { font-family: 'Segoe UI', Arial, sans-serif; font-size: 15px; fill: #c9cdd3; }
+    .head { font-family: 'Segoe UI', Arial, sans-serif; font-size: 18px; font-weight: 700; fill: #ffffff; }
+    .box { fill: #1f2029; }
+  </style>
+  <rect width="960" height="400" fill="#0b0d14"/>
+  <text class="head" x="480" y="34">Qué dice cada parte del comando icacls</text>
+
+  <rect class="box" x="20" y="54" width="920" height="64" rx="14"/>
+  <text class="code" x="480" y="95">icacls "C:\sitios\CursoWeb" /grant "IIS AppPool\CursoWeb:(OI)(CI)RX"</text>
+
+  <rect class="box" x="20" y="146" width="170" height="74" rx="12"/>
+  <text class="tag" x="105" y="176">icacls</text>
+  <text class="desc" x="105" y="202">edita permisos</text>
+
+  <rect class="box" x="204" y="146" width="210" height="74" rx="12"/>
+  <text class="tag" x="309" y="176">"C:\sitios\CursoWeb"</text>
+  <text class="desc" x="309" y="202">la carpeta publicada</text>
+
+  <rect class="box" x="428" y="146" width="110" height="74" rx="12"/>
+  <text class="tag" x="483" y="176">/grant</text>
+  <text class="desc" x="483" y="202">otorgar</text>
+
+  <rect class="box" x="552" y="146" width="220" height="74" rx="12"/>
+  <text class="tag" x="662" y="176">IIS AppPool\CursoWeb</text>
+  <text class="desc" x="662" y="202">a quién: el pool</text>
+
+  <rect class="box" x="786" y="146" width="154" height="74" rx="12"/>
+  <text class="tag" x="863" y="176">(OI)(CI)RX</text>
+  <text class="desc" x="863" y="202">qué permisos</text>
+
+  <rect class="box" x="20" y="244" width="920" height="110" rx="14"/>
+  <text class="tag" x="480" y="274">Los permisos, uno por uno</text>
+  <text class="desc" x="480" y="300">(OI) Object Inherit: aplica a los archivos de dentro · (CI) Container Inherit: aplica a las subcarpetas</text>
+  <text class="desc" x="480" y="324">RX = Read &amp; Execute: leer y ejecutar. No lleva W: el sitio no puede modificarse a sí mismo</text>
+  <text class="desc" x="480" y="346">En pantalla: clic derecho en la carpeta → Propiedades → Seguridad → Editar → Agregar</text>
+</svg>
