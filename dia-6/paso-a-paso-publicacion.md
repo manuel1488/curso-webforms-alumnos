@@ -27,7 +27,7 @@ Hasta hoy la aplicación corre en IIS Express, en tu máquina, con tu usuario. *
 ## 2. Publicar a una carpeta
 
 1. En Visual Studio: clic derecho en el proyecto **CursoWeb** → *Publicar…* → destino **Carpeta**.
-2. Ruta: `C:\sitios\CursoWeb` (evita `C:\inetpub`, que pide permisos de administrador). Configuración **Release**.
+2. Ruta: `C:\sitios\CursoWeb`. Configuración **Release**. El porqué de esta ruta está en el recuadro de abajo.
 3. **Publicar** y abre la carpeta:
 
 | Qué revisar | Qué debe verse |
@@ -37,6 +37,20 @@ Hasta hoy la aplicación corre en IIS Express, en tu máquina, con tu usuario. *
 | Archivos `.cs` | **No** están: ya se compilaron dentro de `CursoWeb.dll` |
 | `lib/`, `css/`, `js/` | Sí están |
 | `Web.config` | Sin `debug="true"` |
+
+**¿Por qué `C:\sitios\CursoWeb` y no `C:\inetpub`?**
+
+Al activar IIS, Windows crea `C:\inetpub`. Dentro está `C:\inetpub\wwwroot`, la carpeta del *Default Web Site* (el sitio que IIS trae por omisión, en el puerto 80). En muchos servidores las aplicaciones se publican ahí, en una subcarpeta, así que es normal encontrarlas en esa ruta.
+
+En el curso usamos otra carpeta por tres razones:
+
+| Razón | Explicación |
+|---|---|
+| Publicar sin ser administrador | Escribir en `C:\inetpub` normalmente exige permisos de administrador. Con `C:\sitios` Visual Studio publica con tu usuario de siempre, sin abrirlo como administrador |
+| No mezclar con el sitio por omisión | `C:\inetpub\wwwroot` ya es de otro sitio. Una carpeta propia deja claro qué archivos son de `CursoWeb` y es fácil de borrar y volver a publicar |
+| Sacar el contenido web del disco del sistema | Es una recomendación habitual de seguridad para IIS: mantener los sitios fuera de la carpeta del sistema. En un servidor real suele ser otro disco |
+
+La ruta no cambia nada de lo demás: IIS sirve el sitio desde donde le indiques en **Ruta de acceso física**, y los permisos de `IIS AppPool\CursoWeb` se dan sobre esa carpeta, esté donde esté. Si algún día publicas en `C:\inetpub\wwwroot\CursoWeb`, solo cambia la ruta en el publicar, en el sitio de IIS, en el `icacls` y en la ruta del `connectionStrings.config` publicado.
 
 ---
 
