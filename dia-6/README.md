@@ -1,6 +1,10 @@
-# Día 6 · Excel con ClosedXML, repaso del filtro y del integrador «Producción por lote»
+# Día 6 · Excel con ClosedXML, integrador «Producción por lote» y publicación
 
-En esta sesión **todos parten del mismo proyecto**: la carpeta [`inicio/`](inicio/). Ya trae el filtro de Piezas y el integrador «Producción por lote» construidos, y **no trae el Excel** (ni en Piezas ni en Producción): ese se desarrolla en clase. También se repasan el filtro y el integrador.
+En esta sesión **todos parten del mismo proyecto**: la carpeta [`inicio/`](inicio/). Ya trae el filtro de Piezas y el integrador «Producción por lote» construidos, y **no trae el Excel** (ni en Piezas ni en Producción): ese se desarrolla en clase. También se repasan el filtro y el integrador, y al final se **publica** la aplicación.
+
+## Publicación
+
+El día cierra con la publicación de la aplicación: desarrollo vs. producción, publicar a una carpeta (`C:\sitios\CursoWeb`), crear el Application Pool y el sitio en IIS, y dar los permisos en la carpeta y en SQL Server. El paso a paso está en [`paso-a-paso-publicacion.md`](paso-a-paso-publicacion.md). Para el sitio publicado necesitas IIS con **ASP.NET 4.8** activado y permisos de administrador; si no puedes instalarlo, sigue la clase en la pantalla del instructor.
 
 ## De dónde se parte
 
@@ -32,10 +36,11 @@ En esta sesión **todos parten del mismo proyecto**: la carpeta [`inicio/`](inic
 |---|---|
 | [`paso-a-paso.md`](paso-a-paso.md) | El Excel de «Producción por lote» sobre `inicio/`: qué se agrega en cada capa, en formato Antes / Después. Cada capa trae también, para repasar, lo que ya viene hecho y por qué |
 | [`opcional-filtro-excel-con-filtro-y-lotes.md`](opcional-filtro-excel-con-filtro-y-lotes.md) | Cómo se construyó el filtro de Piezas y el Excel que respeta el filtro, y el requerimiento, la tabla y el modelo del integrador |
+| [`paso-a-paso-publicacion.md`](paso-a-paso-publicacion.md) | Publicación: de desarrollo a producción, publicar a una carpeta, IIS, permisos en SQL Server y probar el sitio publicado |
 | [`final/`](final/) | La solución completa, con Excel. Se libera al cierre de la sesión |
 
 > Algunos enlaces internos del segundo archivo apuntan a `../dia-4/` y a `../dia-6/paso-a-paso.md`; si alguno no abre, busca el archivo en esas carpetas.
 
 ## Resultado esperado
 
-Piezas con filtro por cliente y familia, y una pantalla **Producción** que registra, consulta, edita y elimina lotes. Al terminar la sesión, ambas exportan a Excel.
+Piezas con filtro por cliente y familia, y una pantalla **Producción** que registra, consulta, edita y elimina lotes. Al terminar la sesión, ambas exportan a Excel y la aplicación queda publicada y corriendo en IIS.
