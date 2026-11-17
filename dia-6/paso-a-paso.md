@@ -1,208 +1,42 @@
-# Paso a paso · Día 6 · Ejercicio integrador
+# Paso a paso · Día 6 · Integrador «Producción por lote»: agregar el Excel
 
-Este paso a paso explica **cómo se construyó** el ejercicio integrador «Producción por lote», capa por capa. **No tienes que construirlo para seguir la clase:** el proyecto de partida, [`inicio/`](inicio/), ya lo trae hecho. Aquí lo consultas para repasarlo o para ver el código completo de cada archivo, qué hace y por qué.
+El proyecto de partida, [`inicio/`](inicio/), **ya trae el integrador «Producción por lote» construido** en todas sus capas: datos, negocio, handler, página, menú y JavaScript. **Lo único que le falta es exportar a Excel.** Eso es lo que agregas aquí, con lo mismo que ya hiciste en Piezas y en Clientes.
+
+Cada sección corresponde a una capa y tiene dos partes: **lo que ya viene en `inicio/`** (para que lo repases: qué hace y por qué) y **lo que agregas** (los cambios, en formato Antes / Después). Los cambios son pequeños: cinco archivos y ningún archivo nuevo.
+
+| Archivo | Qué se hace |
+|---|---|
+| `LotesDatos.cs` | Nada: el Excel reutiliza `Listar` |
+| `LotesNegocio.cs` | **Agregar** `ExportarExcel` y dos `using` |
+| `LotesHandler.ashx.cs` | **Agregar** la acción `exportar` |
+| `Produccion.aspx` | **Agregar** el botón **Exportar a Excel** |
+| `js/produccion.js` | **Agregar** el evento del botón y la función `exportar` |
 
 **Antes de abrir `inicio/`:** copia `connectionStrings.ejemplo.config` como `connectionStrings.config` con tu contraseña y ejecuta [`sql/04-lotes.sql`](../sql/04-lotes.sql) en SSMS. La tabla `Lotes` no viene incluida en tu base de datos y la pantalla **Producción** no abre sin ella. El detalle de qué incluye `inicio/` y qué falta está en el [`README`](README.md) de esta carpeta.
 
-El requerimiento, el diseño, la tabla `Lotes` y el modelo `Lote` están en las secciones 7 a 10 de [`opcional-filtro-excel-con-filtro-y-lotes.md`](opcional-filtro-excel-con-filtro-y-lotes.md). Si quieres construirlo tú, hazlo por capas y compila (**Ctrl+Shift+B**) al terminar cada una antes de seguir con la siguiente.
-
-La solución completa, con Excel, está en [`final/`](final/).
+El requerimiento, el diseño, la tabla `Lotes` y el modelo `Lote` están en las secciones 7 a 10 de [`opcional-filtro-excel-con-filtro-y-lotes.md`](opcional-filtro-excel-con-filtro-y-lotes.md). La solución completa, con Excel, está en [`final/`](final/): si algo no te funciona, compara tu archivo con el de esa carpeta.
 
 ---
+
+## Antes de empezar: instalar ClosedXML
+
+📖 [Microsoft: Install-Package en la consola de Visual Studio](https://learn.microsoft.com/es-es/nuget/consume-packages/install-use-packages-powershell) · [Microsoft: `packages.config`](https://learn.microsoft.com/es-es/nuget/reference/packages-config) · [ClosedXML: documentación](https://docs.closedxml.io/en/latest/)
+
+`inicio/` solo trae `Newtonsoft.Json` y el compilador de Roslyn; **no trae ClosedXML**, así que `using ClosedXML.Excel;` no compilaría. Es el mismo paquete del día 5.
+
+En Visual Studio: *Herramientas → Administrador de paquetes NuGet → Consola del Administrador de paquetes*. Verifica que **Proyecto predeterminado** diga `CursoWeb` y ejecuta:
+
+```powershell
+Install-Package ClosedXML -Version 0.105.1
+```
+
+Compila con **Ctrl+Shift+B**: debe compilar sin errores. Se necesita internet solo para instalar el paquete. Igual que en el día 5, aparecen en `packages.config` ClosedXML **y sus dependencias**, y en `Web.config` los `bindingRedirect` que hagan falta. Si faltaran, la aplicación falla **al ejecutar**, no al compilar.
 
 ## 1. Datos
 
 📖 [SqlCommand.ExecuteScalar](https://learn.microsoft.com/es-es/dotnet/api/system.data.sqlclient.sqlcommand.executescalar) · [SCOPE_IDENTITY](https://learn.microsoft.com/es-es/sql/t-sql/functions/scope-identity-transact-sql) · [Tipos de datos de fecha y hora](https://learn.microsoft.com/es-es/sql/t-sql/data-types/date-transact-sql) · [IS NULL](https://learn.microsoft.com/es-es/sql/t-sql/queries/is-null-transact-sql)
 
-**Archivo nuevo:** clic derecho en la carpeta `Datos` → *Agregar → Clase* → `LotesDatos.cs`. Reemplaza todo su contenido por:
-
-```csharp
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Data.SqlClient;
-using CursoWeb.Modelos;
-
-namespace CursoWeb.Datos
-{
-    public class LotesDatos
-    {
-        private readonly string cadena = ConfigurationManager.ConnectionStrings["CursoWeb"].ConnectionString;
-
-        // piezaId en 0 significa "todas"; desde y hasta en null significan "sin límite"
-        public List<Lote> Listar(int piezaId, DateTime? desde, DateTime? hasta)
-        {
-            const string sql = @"
-SELECT
-      l.LoteId            AS LoteId
-    , l.PiezaId           AS PiezaId
-    , p.NumeroParte       AS NumeroParte
-    , p.FamiliaId         AS FamiliaId
-    , f.Nombre            AS FamiliaNombre
-    , f.ClienteId         AS ClienteId
-    , c.Nombre            AS ClienteNombre
-    , l.NumeroLote        AS NumeroLote
-    , l.Cantidad          AS Cantidad
-    , l.FechaProduccion   AS FechaProduccion
-    , l.Turno             AS Turno
-    , l.Activo            AS Activo
-    , l.FechaAlta         AS FechaAlta
-FROM
-    dbo.Lotes AS l
-INNER JOIN
-    dbo.Piezas AS p ON p.PiezaId = l.PiezaId
-INNER JOIN
-    dbo.Familias AS f ON f.FamiliaId = p.FamiliaId
-INNER JOIN
-    dbo.Clientes AS c ON c.ClienteId = f.ClienteId
-WHERE
-    l.Activo = 1
-AND (@PiezaId = 0 OR l.PiezaId = @PiezaId)
-AND (@Desde IS NULL OR l.FechaProduccion >= @Desde)
-AND (@Hasta IS NULL OR l.FechaProduccion <= @Hasta)
-ORDER BY
-      l.FechaProduccion DESC
-    , l.LoteId DESC;";
-
-            var lista = new List<Lote>();
-            using (var cn = new SqlConnection(cadena))
-            using (var cmd = new SqlCommand(sql, cn))
-            {
-                cmd.Parameters.Add("@PiezaId", SqlDbType.Int).Value = piezaId;
-                cmd.Parameters.Add("@Desde", SqlDbType.Date).Value = (object)desde ?? DBNull.Value;
-                cmd.Parameters.Add("@Hasta", SqlDbType.Date).Value = (object)hasta ?? DBNull.Value;
-
-                cn.Open();
-                using (var dr = cmd.ExecuteReader())
-                {
-                    while (dr.Read())
-                    {
-                        lista.Add(new Lote
-                        {
-                            // Todas estas columnas son NOT NULL: se leen con su tipo exacto
-                            LoteId = dr.GetInt32(dr.GetOrdinal("LoteId")),
-                            PiezaId = dr.GetInt32(dr.GetOrdinal("PiezaId")),
-                            NumeroParte = dr.GetString(dr.GetOrdinal("NumeroParte")),
-                            FamiliaId = dr.GetInt32(dr.GetOrdinal("FamiliaId")),
-                            FamiliaNombre = dr.GetString(dr.GetOrdinal("FamiliaNombre")),
-                            ClienteId = dr.GetInt32(dr.GetOrdinal("ClienteId")),
-                            ClienteNombre = dr.GetString(dr.GetOrdinal("ClienteNombre")),
-                            NumeroLote = dr.GetString(dr.GetOrdinal("NumeroLote")),
-                            Cantidad = dr.GetInt32(dr.GetOrdinal("Cantidad")),
-                            FechaProduccion = dr.GetDateTime(dr.GetOrdinal("FechaProduccion")),
-                            Turno = dr.GetByte(dr.GetOrdinal("Turno")),
-                            Activo = dr.GetBoolean(dr.GetOrdinal("Activo")),
-                            FechaAlta = dr.GetDateTime(dr.GetOrdinal("FechaAlta"))
-                        });
-                    }
-                }
-            }
-            return lista;
-        }
-
-        public int Insertar(Lote l)
-        {
-            const string sql = @"
-INSERT INTO dbo.Lotes (PiezaId, NumeroLote, Cantidad, FechaProduccion, Turno)
-VALUES (@PiezaId, @NumeroLote, @Cantidad, @FechaProduccion, @Turno);
-
-SELECT
-    CAST(SCOPE_IDENTITY() AS INT) AS LoteId;";
-
-            using (var cn = new SqlConnection(cadena))
-            using (var cmd = new SqlCommand(sql, cn))
-            {
-                cmd.Parameters.Add("@PiezaId", SqlDbType.Int).Value = l.PiezaId;
-                cmd.Parameters.Add("@NumeroLote", SqlDbType.VarChar, 50).Value = l.NumeroLote;
-                cmd.Parameters.Add("@Cantidad", SqlDbType.Int).Value = l.Cantidad;
-                cmd.Parameters.Add("@FechaProduccion", SqlDbType.Date).Value = l.FechaProduccion;
-                cmd.Parameters.Add("@Turno", SqlDbType.TinyInt).Value = (byte)l.Turno;
-
-                cn.Open();
-                return (int)cmd.ExecuteScalar();
-            }
-        }
-
-        public int Actualizar(Lote l)
-        {
-            const string sql = @"
-UPDATE l
-SET
-      l.PiezaId          = @PiezaId
-    , l.NumeroLote       = @NumeroLote
-    , l.Cantidad         = @Cantidad
-    , l.FechaProduccion  = @FechaProduccion
-    , l.Turno            = @Turno
-FROM
-    dbo.Lotes AS l
-WHERE
-    l.LoteId = @LoteId
-    AND l.Activo = 1;";
-
-            using (var cn = new SqlConnection(cadena))
-            using (var cmd = new SqlCommand(sql, cn))
-            {
-                cmd.Parameters.Add("@LoteId", SqlDbType.Int).Value = l.LoteId;
-                cmd.Parameters.Add("@PiezaId", SqlDbType.Int).Value = l.PiezaId;
-                cmd.Parameters.Add("@NumeroLote", SqlDbType.VarChar, 50).Value = l.NumeroLote;
-                cmd.Parameters.Add("@Cantidad", SqlDbType.Int).Value = l.Cantidad;
-                cmd.Parameters.Add("@FechaProduccion", SqlDbType.Date).Value = l.FechaProduccion;
-                cmd.Parameters.Add("@Turno", SqlDbType.TinyInt).Value = (byte)l.Turno;
-
-                cn.Open();
-                return cmd.ExecuteNonQuery();
-            }
-        }
-
-        public int Desactivar(int loteId)
-        {
-            const string sql = @"
-UPDATE l
-SET
-    l.Activo = 0
-FROM
-    dbo.Lotes AS l
-WHERE
-    l.LoteId = @LoteId
-    AND l.Activo = 1;";
-
-            using (var cn = new SqlConnection(cadena))
-            using (var cmd = new SqlCommand(sql, cn))
-            {
-                cmd.Parameters.Add("@LoteId", SqlDbType.Int).Value = loteId;
-                cn.Open();
-                return cmd.ExecuteNonQuery();
-            }
-        }
-
-        // Cuenta los lotes con ese número para esa pieza, activos o eliminados, sin contar el que se está editando
-        public bool ExisteNumeroLote(int piezaId, string numeroLote, int loteId)
-        {
-            const string sql = @"
-SELECT
-    COUNT(*) AS Total
-FROM
-    dbo.Lotes AS l
-WHERE
-    l.PiezaId = @PiezaId
-    AND l.NumeroLote = @NumeroLote
-    AND l.LoteId <> @LoteId;";
-
-            using (var cn = new SqlConnection(cadena))
-            using (var cmd = new SqlCommand(sql, cn))
-            {
-                cmd.Parameters.Add("@PiezaId", SqlDbType.Int).Value = piezaId;
-                cmd.Parameters.Add("@NumeroLote", SqlDbType.VarChar, 50).Value = numeroLote;
-                cmd.Parameters.Add("@LoteId", SqlDbType.Int).Value = loteId;
-
-                cn.Open();
-                return (int)cmd.ExecuteScalar() > 0;
-            }
-        }
-    }
-}
-```
+**Ya viene en `inicio/`:** `Datos/LotesDatos.cs`. **No se cambia.** El Excel llama a `LotesDatos.Listar` con los mismos filtros de la tabla: así el archivo y la pantalla no pueden discrepar.
 
 | Pieza | Qué hace | Por qué |
 |---|---|---|
@@ -216,11 +50,36 @@ WHERE
 | `ORDER BY l.FechaProduccion DESC` | Lo más reciente primero | Es lo que se espera de un registro de producción |
 | `ExisteNumeroLote(piezaId, numeroLote, loteId)` | Cuenta lotes con ese número **para esa pieza**, activos o eliminados, sin el que se edita | Es `ExisteNumeroParte` con una llave compuesta |
 
+El código completo está en [`inicio/…/Datos/LotesDatos.cs`](inicio/CursoWeb/CursoWeb/Datos/LotesDatos.cs).
+
 ## 2. Negocio
 
-📖 [DateTime.Today](https://learn.microsoft.com/es-es/dotnet/api/system.datetime.today) · [Nullable&lt;T&gt;](https://learn.microsoft.com/es-es/dotnet/api/system.nullable-1)
+📖 [DateTime.Today](https://learn.microsoft.com/es-es/dotnet/api/system.datetime.today) · [Nullable&lt;T&gt;](https://learn.microsoft.com/es-es/dotnet/api/system.nullable-1) · [ClosedXML: documentación](https://docs.closedxml.io/en/latest/)
 
-**Archivo nuevo:** clic derecho en la carpeta `Negocio` → *Agregar → Clase* → `LotesNegocio.cs`. Reemplaza todo su contenido por:
+**Ya viene en `inicio/`:** `Negocio/LotesNegocio.cs` con `Listar`, `Guardar`, `Eliminar` y las validaciones.
+
+| Pieza | Qué hace | Por qué |
+|---|---|---|
+| `Listar` valida el rango | Si `desde` es mayor que `hasta`, responde un error | La pantalla ya lo avisa, pero Negocio es quien decide |
+| `Validar`: fecha futura | `FechaProduccion.Date > DateTime.Today` | La regla que no puede vivir en la tabla |
+| `FechaProduccion == default(DateTime)` | Detecta que no llegó fecha | Una fecha que falta llega como `0001-01-01` |
+| `Cantidad <= 0`, `Turno < 1 || Turno > 3` | Reglas de rango | También viven en los `CHECK` de la tabla: aquí dan un mensaje claro |
+| `ExisteNumeroLote` antes de guardar | Mensaje claro si el lote ya existe para esa pieza | El `UNIQUE` sigue siendo la última defensa |
+
+**Agregar** a `Negocio/LotesNegocio.cs`.
+
+*1. Los `using` de arriba.*
+
+Antes:
+
+```csharp
+using System;
+using System.Collections.Generic;
+using CursoWeb.Datos;
+using CursoWeb.Modelos;
+```
+
+Después:
 
 ```csharp
 using System;
@@ -229,23 +88,11 @@ using System.IO;
 using ClosedXML.Excel;
 using CursoWeb.Datos;
 using CursoWeb.Modelos;
+```
 
-namespace CursoWeb.Negocio
-{
-    public class LotesNegocio
-    {
-        private readonly LotesDatos datos = new LotesDatos();
+*2. El método, entre `Listar` y `Guardar`.*
 
-        // piezaId en 0 significa "todas"; desde y hasta en null significan "sin límite"
-        public Respuesta Listar(int piezaId, DateTime? desde, DateTime? hasta)
-        {
-            if (desde.HasValue && hasta.HasValue && desde.Value > hasta.Value)
-            {
-                return Respuesta.Error("La fecha inicial no puede ser mayor que la final.");
-            }
-            return Respuesta.Exito("", datos.Listar(piezaId, desde, hasta));
-        }
-
+```csharp
         // Genera el Excel de los lotes con los mismos filtros del listado y regresa los bytes del archivo
         public byte[] ExportarExcel(int piezaId, DateTime? desde, DateTime? hasta)
         {
@@ -287,147 +134,45 @@ namespace CursoWeb.Negocio
                 }
             }
         }
-
-        public Respuesta Guardar(Lote l)
-        {
-            Normalizar(l);
-
-            var errores = Validar(l);
-            if (errores.Count > 0)
-            {
-                return Respuesta.Error(string.Join(" ", errores));
-            }
-
-            if (datos.ExisteNumeroLote(l.PiezaId, l.NumeroLote, l.LoteId))
-            {
-                return Respuesta.Error("Ya existe ese número de lote para la pieza (puede estar eliminado).");
-            }
-
-            if (l.LoteId == 0)
-            {
-                l.LoteId = datos.Insertar(l);
-                return Respuesta.Exito("Lote guardado.", l);
-            }
-
-            if (datos.Actualizar(l) == 0)
-            {
-                return Respuesta.Error("El lote no existe o fue eliminado.");
-            }
-            return Respuesta.Exito("Lote actualizado.", l);
-        }
-
-        public Respuesta Eliminar(int loteId)
-        {
-            if (datos.Desactivar(loteId) == 0)
-            {
-                return Respuesta.Error("El lote no existe o ya fue eliminado.");
-            }
-            return Respuesta.Exito("Lote eliminado.");
-        }
-
-        private static void Normalizar(Lote l)
-        {
-            l.NumeroLote = Limpiar(l.NumeroLote);
-        }
-
-        private static string Limpiar(string valor)
-        {
-            if (string.IsNullOrWhiteSpace(valor))
-            {
-                return null;
-            }
-            return valor.Trim();
-        }
-
-        private static List<string> Validar(Lote l)
-        {
-            var errores = new List<string>();
-
-            if (l.PiezaId <= 0)
-            {
-                errores.Add("Selecciona una pieza.");
-            }
-
-            if (l.NumeroLote == null)
-            {
-                errores.Add("El número de lote es obligatorio.");
-            }
-            else if (l.NumeroLote.Length > 50)
-            {
-                errores.Add("El número de lote no puede pasar de 50 caracteres.");
-            }
-
-            if (l.Cantidad <= 0)
-            {
-                errores.Add("La cantidad debe ser mayor a cero.");
-            }
-
-            if (l.FechaProduccion == default(DateTime))
-            {
-                errores.Add("La fecha de producción es obligatoria.");
-            }
-            else if (l.FechaProduccion.Date > DateTime.Today)
-            {
-                errores.Add("La fecha de producción no puede ser futura.");
-            }
-
-            if (l.Turno < 1 || l.Turno > 3)
-            {
-                errores.Add("El turno debe ser 1, 2 o 3.");
-            }
-
-            return errores;
-        }
-    }
-}
 ```
 
 | Pieza | Qué hace | Por qué |
 |---|---|---|
-| `Listar` valida el rango | Si `desde` es mayor que `hasta`, responde un error | La pantalla ya lo avisa, pero Negocio es quien decide |
-| `Validar`: fecha futura | `FechaProduccion.Date > DateTime.Today` | La regla que no puede vivir en la tabla |
-| `FechaProduccion == default(DateTime)` | Detecta que no llegó fecha | Una fecha que falta llega como `0001-01-01` |
-| `Cantidad <= 0`, `Turno < 1 || Turno > 3` | Reglas de rango | También viven en los `CHECK` de la tabla: aquí dan un mensaje claro |
-| `ExisteNumeroLote` antes de guardar | Mensaje claro si el lote ya existe para esa pieza | El `UNIQUE` sigue siendo la última defensa |
-| `ExportarExcel` | Los mismos datos que `Listar` | Es el de Piezas con otras columnas |
+| `datos.Listar(piezaId, desde, hasta)` | Pide los lotes con los filtros recibidos | **La misma consulta** del listado: el Excel y la tabla no pueden discrepar |
+| `.Value = l.FechaProduccion` | Escribe una **fecha**, no un texto | Excel la reconoce como fecha: se puede ordenar y filtrar |
+| `Column(6).Style.DateFormat.Format = "dd/MM/yyyy"` | Solo fecha, sin hora | La columna es `DATE`: no hay hora que mostrar (en Piezas, `Alta` sí llevaba hora) |
+| `byte[]` como resultado | Negocio regresa **los bytes**, no escribe la respuesta | Negocio no sabe de HTTP: quien responde es el handler |
+
+Es `PiezasNegocio.ExportarExcel` con otras columnas y con los filtros de pieza y fechas.
 
 ## 3. Handler
 
-**Archivo nuevo:** clic derecho en la carpeta `Handlers` → *Agregar → Nuevo elemento →* **Controlador genérico** → `LotesHandler.ashx`. Visual Studio crea dos archivos:
+📖 [Microsoft: `HttpResponse.OutputStream`](https://learn.microsoft.com/es-es/dotnet/api/system.web.httpresponse.outputstream) · [Microsoft: `HttpResponse.AddHeader` (la página indica usar `AppendHeader`)](https://learn.microsoft.com/es-es/dotnet/api/system.web.httpresponse.addheader)
 
-- `LotesHandler.ashx`: una sola línea que apunta a la clase. **No se toca.**
-- `LotesHandler.ashx.cs`: reemplaza todo su contenido por:
+**Ya viene en `inicio/`:** `Handlers/LotesHandler.ashx` y `LotesHandler.ashx.cs` con las acciones `listar`, `guardar` y `eliminar`. El `.ashx` solo apunta a la clase y no se toca.
+
+| Pieza | Qué hace | Por qué |
+|---|---|---|
+| `LeerFecha` | Lee `aaaa-mm-dd` de la URL y regresa `null` si falta o no es válida | `<input type="date">` entrega ese formato. Una fecha que no llega es «sin límite» |
+| `TryParseExact` con `CultureInfo.InvariantCulture` | Convierte solo ese formato | No depende de la configuración regional del servidor |
+| `LeerEntero` | El de Piezas | Igual: `0` si falta |
+| `guardar` y `eliminar` solo con `POST` | Con otro método responden 405 | Las acciones que escriben solo se aceptan por `POST`; `listar` y `exportar` son de lectura (`GET`) |
+
+**Agregar** en `Handlers/LotesHandler.ashx.cs`, entre `listar` y `guardar`.
+
+Antes:
 
 ```csharp
-using System;
-using System.Globalization;
-using System.IO;
-using System.Web;
-using CursoWeb.Modelos;
-using CursoWeb.Negocio;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+                    case "listar":
+                        respuesta = negocio.Listar(LeerEntero(context, "piezaId"), LeerFecha(context, "desde"), LeerFecha(context, "hasta"));
+                        break;
 
-namespace CursoWeb.Handlers
-{
-    public class LotesHandler : IHttpHandler
-    {
-        private static readonly JsonSerializerSettings Json = new JsonSerializerSettings
-        {
-            ContractResolver = new CamelCasePropertyNamesContractResolver(),
-            DateFormatString = "yyyy-MM-ddTHH:mm:ss"
-        };
+                    case "guardar":
+```
 
-        public void ProcessRequest(HttpContext context)
-        {
-            context.Response.ContentType = "application/json";
-            Respuesta respuesta;
+Después:
 
-            try
-            {
-                var negocio = new LotesNegocio();
-                switch (context.Request.QueryString["accion"])
-                {
+```csharp
                     case "listar":
                         respuesta = negocio.Listar(LeerEntero(context, "piezaId"), LeerFecha(context, "desde"), LeerFecha(context, "hasta"));
                         break;
@@ -440,215 +185,19 @@ namespace CursoWeb.Handlers
                         return;
 
                     case "guardar":
-                        if (context.Request.HttpMethod != "POST")
-                        {
-                            context.Response.StatusCode = 405;
-                            respuesta = Respuesta.Error("Para guardar se usa POST.");
-                            break;
-                        }
-
-                        var lote = LeerCuerpo<Lote>(context);
-                        respuesta = lote == null
-                            ? Respuesta.Error("No llegaron los datos del lote.")
-                            : negocio.Guardar(lote);
-                        break;
-
-                    case "eliminar":
-                        if (context.Request.HttpMethod != "POST")
-                        {
-                            context.Response.StatusCode = 405;
-                            respuesta = Respuesta.Error("Para eliminar se usa POST.");
-                            break;
-                        }
-
-                        var aEliminar = LeerCuerpo<Lote>(context);
-                        respuesta = aEliminar == null
-                            ? Respuesta.Error("No llegó el lote a eliminar.")
-                            : negocio.Eliminar(aEliminar.LoteId);
-                        break;
-
-                    default:
-                        respuesta = Respuesta.Error("Acción no válida.");
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                respuesta = Respuesta.Error(context.IsDebuggingEnabled
-                    ? ex.Message
-                    : "Ocurrió un error en el servidor.");
-            }
-
-            context.Response.Write(JsonConvert.SerializeObject(respuesta, Json));
-        }
-
-        // Lee un número de la URL. Si falta o no es número, regresa 0
-        private static int LeerEntero(HttpContext context, string nombre)
-        {
-            int valor;
-            int.TryParse(context.Request.QueryString[nombre], out valor);
-            return valor;
-        }
-
-        // Lee una fecha de la URL con formato aaaa-mm-dd. Si falta o no es válida, regresa null
-        private static DateTime? LeerFecha(HttpContext context, string nombre)
-        {
-            DateTime fecha;
-            if (DateTime.TryParseExact(context.Request.QueryString[nombre], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out fecha))
-            {
-                return fecha;
-            }
-            return null;
-        }
-
-        private static T LeerCuerpo<T>(HttpContext context)
-        {
-            using (var lector = new StreamReader(context.Request.InputStream))
-            {
-                return JsonConvert.DeserializeObject<T>(lector.ReadToEnd(), Json);
-            }
-        }
-
-        public bool IsReusable => false;
-    }
-}
 ```
 
 | Pieza | Qué hace | Por qué |
 |---|---|---|
-| `LeerFecha` | Lee `aaaa-mm-dd` de la URL y regresa `null` si falta o no es válida | `<input type="date">` entrega ese formato. Una fecha que no llega es «sin límite» |
-| `TryParseExact` con `CultureInfo.InvariantCulture` | Convierte solo ese formato | No depende de la configuración regional del servidor |
-| `LeerEntero` | El de Piezas | Igual: `0` si falta |
-| `exportar` | Idéntico al de Piezas | `ContentType`, `Content-Disposition` y `OutputStream`, con `return;` |
+| `exportar` | **Idéntico al de Piezas**, salvo los filtros que se leen de la URL | `ContentType`, `Content-Disposition` y `OutputStream`, con `return;` |
+| `return;` en lugar de `break;` | Termina **sin** escribir el JSON del final | Si no, se pegaría un JSON al final del archivo y Excel se quejaría |
+| `negocio.ExportarExcel(...)` **antes** de tocar la respuesta | Genera el archivo primero | Si algo falla, el `catch` todavía puede responder un JSON de error |
+
+Prueba rápida con la aplicación corriendo: abre `Handlers/LotesHandler.ashx?accion=exportar` en el navegador. Baja `Lotes_….xlsx`; ábrelo en Excel. También funciona con filtros en la URL, por ejemplo `&desde=2026-11-01&hasta=2026-11-30`.
 
 ## 4. La página y el menú
 
-**Archivo nuevo:** *Agregar → Nuevo elemento → **Formulario Web Forms con página maestra***, elige `Site.Master`, nombre `Produccion.aspx`. Reemplaza **todo el archivo** por:
-
-```aspx
-﻿<%@ Page Title="Producción" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="Produccion.aspx.cs" Inherits="CursoWeb.Produccion" %>
-<asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-</asp:Content>
-<asp:Content ID="Content2" ContentPlaceHolderID="MainContent" runat="server">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">Producción</h1>
-        <button type="button" id="btnNuevo" class="btn btn-primary">Nuevo lote</button>
-    </div>
-    <div id="divMensaje" class="alert d-none" role="alert"></div>
-
-    <!-- Filtro del listado -->
-    <div class="row g-3 align-items-end mb-3">
-        <div class="col-md-4">
-            <label for="cboFiltroPieza" class="form-label">Pieza</label>
-            <select id="cboFiltroPieza" class="form-select"></select>
-        </div>
-        <div class="col-md-2">
-            <label for="txtDesde" class="form-label">Desde</label>
-            <input type="date" id="txtDesde" class="form-control" />
-        </div>
-        <div class="col-md-2">
-            <label for="txtHasta" class="form-label">Hasta</label>
-            <input type="date" id="txtHasta" class="form-control" />
-        </div>
-        <div class="col-md-4">
-            <button type="button" id="btnBuscar" class="btn btn-primary">Buscar</button>
-            <button type="button" id="btnLimpiarFiltro" class="btn btn-outline-secondary">Limpiar</button>
-            <button type="button" id="btnExportar" class="btn btn-success">Exportar a Excel</button>
-        </div>
-    </div>
-
-    <table id="tblLotes"></table>
-
-    <!-- Modal: alta y edición -->
-    <div class="modal fade" id="mdlLote" tabindex="-1" aria-labelledby="lblTituloFormulario" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 id="lblTituloFormulario" class="modal-title">Nuevo lote</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="divMensajeModal" class="alert d-none" role="alert"></div>
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label for="cboCliente" class="form-label">Cliente</label>
-                            <select id="cboCliente" class="form-select"></select>
-                        </div>
-                        <div class="col-12">
-                            <label for="cboFamilia" class="form-label">Familia</label>
-                            <select id="cboFamilia" class="form-select" disabled></select>
-                        </div>
-                        <div class="col-12">
-                            <label for="cboPieza" class="form-label">Pieza</label>
-                            <select id="cboPieza" class="form-select" disabled></select>
-                        </div>
-                        <div class="col-12">
-                            <label for="txtNumeroLote" class="form-label">Número de lote</label>
-                            <input type="text" id="txtNumeroLote" class="form-control" maxlength="50" />
-                        </div>
-                        <div class="col-md-4">
-                            <label for="txtCantidad" class="form-label">Cantidad</label>
-                            <input type="number" id="txtCantidad" class="form-control" min="1" step="1" />
-                        </div>
-                        <div class="col-md-4">
-                            <label for="txtFecha" class="form-label">Fecha</label>
-                            <input type="date" id="txtFecha" class="form-control" />
-                        </div>
-                        <div class="col-md-4">
-                            <label for="cboTurno" class="form-label">Turno</label>
-                            <select id="cboTurno" class="form-select">
-                                <option value="">Selecciona</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" id="btnGuardar" class="btn btn-primary">Guardar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: confirmar eliminación -->
-    <div class="modal fade" id="mdlConfirmar" tabindex="-1" aria-labelledby="lblTituloConfirmar" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 id="lblTituloConfirmar" class="modal-title">Eliminar lote</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body">
-                    <p id="lblConfirmar" class="mb-0"></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" id="btnConfirmarEliminar" class="btn btn-danger">Eliminar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</asp:Content>
-<asp:Content ID="Content3" ContentPlaceHolderID="Scripts" runat="server">
-    <script src="js/produccion.js"></script>
-</asp:Content>
-```
-
-Y el menú, en `Site.Master`. Antes:
-
-```html
-                        <a class="nav-link" href="Piezas.aspx">Piezas</a>
-```
-
-Después:
-
-```html
-                        <a class="nav-link" href="Piezas.aspx">Piezas</a>
-                        <a class="nav-link" href="Produccion.aspx">Producción</a>
-```
+**Ya viene en `inicio/`:** `Produccion.aspx` con el filtro, la tabla, el modal de alta y edición, y el modal de confirmación. El enlace **Producción** del menú de `Site.Master` también.
 
 | Pieza | Qué hace | Por qué |
 |---|---|---|
@@ -658,417 +207,30 @@ Después:
 | Tres combos con `disabled` | `cboFamilia` y `cboPieza` empiezan deshabilitados | Cada uno espera al anterior |
 | Ids distintos del filtro y del modal | `cboFiltroPieza`, `txtDesde`, `txtHasta` en el filtro; `cboCliente`, `cboFamilia`, `cboPieza`, `txtFecha` en el modal | Controles diferentes, con prefijo que dice qué son |
 
+**Agregar** en `Produccion.aspx`: el botón va junto a **Buscar** y **Limpiar**, dentro de la barra del filtro.
+
+Antes:
+
+```html
+            <button type="button" id="btnBuscar" class="btn btn-primary">Buscar</button>
+            <button type="button" id="btnLimpiarFiltro" class="btn btn-outline-secondary">Limpiar</button>
+```
+
+Después:
+
+```html
+            <button type="button" id="btnBuscar" class="btn btn-primary">Buscar</button>
+            <button type="button" id="btnLimpiarFiltro" class="btn btn-outline-secondary">Limpiar</button>
+            <button type="button" id="btnExportar" class="btn btn-success">Exportar a Excel</button>
+```
+
+El botón está en la barra del **filtro** porque el Excel respeta los filtros.
+
 ## 5. JavaScript
 
 📖 [jQuery: `.on()`](https://api.jquery.com/on/) · [jQuery: `$.ajax()`](https://api.jquery.com/jQuery.ajax/) · [jQuery: `.val()`](https://api.jquery.com/val/) · [jQuery: `.prop()`](https://api.jquery.com/prop/) · [jQuery: `.append()`](https://api.jquery.com/append/) · [Bootstrap Table: métodos (`refresh`)](https://bootstrap-table.com/docs/api/methods/)
 
-**Archivo nuevo:** clic derecho en la carpeta `js` → *Agregar → Nuevo elemento → Archivo JavaScript* → `produccion.js`. Contenido completo:
-
-```javascript
-let loteIdEditando = 0;
-let loteAEliminar = null;
-let modalLote;
-let modalConfirmar;
-let filtroAplicado = ''; // los filtros con los que se pidió la tabla; el Excel usa los mismos
-
-$(function () {
-    modalLote = new bootstrap.Modal('#mdlLote');
-    modalConfirmar = new bootstrap.Modal('#mdlConfirmar');
-
-    // La fecha de producción no puede ser futura: el calendario no deja elegir días posteriores a hoy
-    $('#txtFecha, #txtDesde, #txtHasta').attr('max', hoy());
-
-    $('#btnNuevo').on('click', nuevo);
-    $('#btnGuardar').on('click', guardar);
-    $('#btnConfirmarEliminar').on('click', confirmarEliminar);
-    $('#cboCliente').on('change', cambiarCliente);
-    $('#cboFamilia').on('change', cambiarFamilia);
-    $('#btnBuscar').on('click', buscar);
-    $('#btnLimpiarFiltro').on('click', limpiarFiltro);
-    $('#btnExportar').on('click', exportar);
-    $('#mdlLote').on('shown.bs.modal', function () {
-        $('#cboCliente').trigger('focus');
-    });
-
-    cargarClientes();
-    cargarPiezasFiltro();
-    inicializarTabla();
-});
-
-// La fecha de hoy con el formato aaaa-mm-dd que usa <input type="date">
-function hoy() {
-    const d = new Date();
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-
-// Llena el combo con los clientes activos, reutilizando el handler de Clientes
-function cargarClientes() {
-    $.ajax({
-        url: 'Handlers/ClientesHandler.ashx?accion=listar',
-        type: 'GET',
-        dataType: 'json'
-    })
-        .done(function (r) {
-            const $combo = $('#cboCliente');
-            $combo.empty();
-            $combo.append($('<option>').val('').text('Selecciona un cliente'));
-            if (r.ok) {
-                r.datos.forEach(function (c) {
-                    $combo.append($('<option>').val(c.clienteId).text(c.nombre));
-                });
-            }
-        })
-        .fail(function (xhr) {
-            mostrarMensaje('No se pudieron cargar los clientes (' + xhr.status + ').', 'danger');
-        });
-}
-
-// Llena el combo de piezas del filtro con todas las piezas activas, reutilizando el handler de Piezas
-function cargarPiezasFiltro() {
-    $.ajax({
-        url: 'Handlers/PiezasHandler.ashx?accion=listar',
-        type: 'GET',
-        dataType: 'json'
-    })
-        .done(function (r) {
-            const $combo = $('#cboFiltroPieza');
-            $combo.empty();
-            $combo.append($('<option>').val('0').text('Todas las piezas'));
-            if (r.ok) {
-                r.datos.forEach(function (p) {
-                    $combo.append($('<option>').val(p.piezaId).text(p.numeroParte + ' · ' + p.descripcion));
-                });
-            }
-        })
-        .fail(function (xhr) {
-            mostrarMensaje('No se pudieron cargar las piezas del filtro (' + xhr.status + ').', 'danger');
-        });
-}
-
-// Al cambiar el cliente, se piden al servidor sus familias
-function cambiarCliente() {
-    cargarFamilias(Number($('#cboCliente').val()) || 0, 0, 0);
-}
-
-// Al cambiar la familia, se piden al servidor sus piezas
-function cambiarFamilia() {
-    cargarPiezas(Number($('#cboFamilia').val()) || 0, 0);
-}
-
-// Llena el combo de familias con las del cliente. Al editar llegan también la familia y la pieza que deben quedar seleccionadas
-function cargarFamilias(clienteId, familiaId, piezaId) {
-    const $combo = $('#cboFamilia');
-    $combo.empty();
-    $combo.append($('<option>').val('').text('Selecciona una familia'));
-    $combo.prop('disabled', true);
-    cargarPiezas(0, 0);
-    ocultarMensaje('#divMensajeModal');
-    if (!clienteId) {
-        return;
-    }
-
-    $.ajax({
-        url: 'Handlers/FamiliasHandler.ashx?accion=listarPorCliente&clienteId=' + clienteId,
-        type: 'GET',
-        dataType: 'json'
-    })
-        .done(function (r) {
-            // Si el cliente cambió mientras llegaba la respuesta, esta ya no sirve
-            if (clienteId !== (Number($('#cboCliente').val()) || 0)) {
-                return;
-            }
-            if (!r.ok) {
-                mostrarMensaje(r.mensaje, 'danger', '#divMensajeModal');
-                return;
-            }
-            if (r.datos.length === 0) {
-                mostrarMensaje('Este cliente no tiene familias activas.', 'danger', '#divMensajeModal');
-                return;
-            }
-            r.datos.forEach(function (f) {
-                $combo.append($('<option>').val(f.familiaId).text(f.nombre));
-            });
-            $combo.prop('disabled', false);
-            if (familiaId) {
-                $combo.val(familiaId);
-                cargarPiezas(familiaId, piezaId);
-            }
-        })
-        .fail(function (xhr) {
-            mostrarMensaje('No se pudieron cargar las familias (' + xhr.status + ').', 'danger', '#divMensajeModal');
-        });
-}
-
-// Llena el combo de piezas con las de la familia. Al editar llega también la pieza que debe quedar seleccionada
-function cargarPiezas(familiaId, piezaId) {
-    const $combo = $('#cboPieza');
-    $combo.empty();
-    $combo.append($('<option>').val('').text('Selecciona una pieza'));
-    $combo.prop('disabled', true);
-    if (!familiaId) {
-        return;
-    }
-
-    $.ajax({
-        url: 'Handlers/PiezasHandler.ashx?accion=listar&familiaId=' + familiaId,
-        type: 'GET',
-        dataType: 'json'
-    })
-        .done(function (r) {
-            // Si la familia cambió mientras llegaba la respuesta, esta ya no sirve
-            if (familiaId !== (Number($('#cboFamilia').val()) || 0)) {
-                return;
-            }
-            if (!r.ok) {
-                mostrarMensaje(r.mensaje, 'danger', '#divMensajeModal');
-                return;
-            }
-            if (r.datos.length === 0) {
-                mostrarMensaje('Esta familia no tiene piezas activas.', 'danger', '#divMensajeModal');
-                return;
-            }
-            r.datos.forEach(function (p) {
-                $combo.append($('<option>').val(p.piezaId).text(p.numeroParte + ' · ' + p.descripcion));
-            });
-            $combo.prop('disabled', false);
-            if (piezaId) {
-                $combo.val(piezaId);
-            }
-        })
-        .fail(function (xhr) {
-            mostrarMensaje('No se pudieron cargar las piezas (' + xhr.status + ').', 'danger', '#divMensajeModal');
-        });
-}
-
-// Los filtros que hay en los controles, listos para agregarse a una URL; 0 y vacío significan "sin filtro"
-function parametrosFiltro() {
-    return '&piezaId=' + (Number($('#cboFiltroPieza').val()) || 0)
-        + '&desde=' + $('#txtDesde').val()
-        + '&hasta=' + $('#txtHasta').val();
-}
-
-// La URL del listado lleva los filtros con los que se pidió la tabla
-function urlListado() {
-    return 'Handlers/LotesHandler.ashx?accion=listar' + filtroAplicado;
-}
-
-// Pide la tabla otra vez, con los filtros que hay en los controles
-function recargarTabla() {
-    filtroAplicado = parametrosFiltro();
-    $('#tblLotes').bootstrapTable('refresh', { url: urlListado() });
-}
-
-function buscar() {
-    ocultarMensaje();
-    const desde = $('#txtDesde').val();
-    const hasta = $('#txtHasta').val();
-    // Las fechas aaaa-mm-dd se pueden comparar como texto
-    if (desde && hasta && desde > hasta) {
-        mostrarMensaje('La fecha inicial no puede ser mayor que la final.', 'danger');
-        return;
-    }
-    recargarTabla();
-}
-
-function limpiarFiltro() {
-    $('#cboFiltroPieza').val('0');
-    $('#txtDesde, #txtHasta').val('');
-    buscar();
-}
-
-// Descarga el Excel con los mismos filtros que tiene la tabla
-function exportar() {
-    window.location = 'Handlers/LotesHandler.ashx?accion=exportar' + filtroAplicado;
-}
-
-function obtenerLote() {
-    return {
-        loteId: loteIdEditando,
-        piezaId: Number($('#cboPieza').val()) || 0,
-        numeroLote: $('#txtNumeroLote').val().trim(),
-        cantidad: Number($('#txtCantidad').val()) || 0,
-        fechaProduccion: $('#txtFecha').val(),
-        turno: Number($('#cboTurno').val()) || 0
-    };
-}
-
-function validarLote(l, clienteId, familiaId) {
-    const errores = [];
-    if (!clienteId) {
-        errores.push('Selecciona un cliente.');
-    }
-    if (!familiaId) {
-        errores.push('Selecciona una familia.');
-    }
-    if (!l.piezaId) {
-        errores.push('Selecciona una pieza.');
-    }
-    if (!l.numeroLote) {
-        errores.push('El número de lote es obligatorio.');
-    }
-    if (l.cantidad <= 0) {
-        errores.push('La cantidad debe ser mayor a cero.');
-    }
-    if (!l.fechaProduccion) {
-        errores.push('La fecha de producción es obligatoria.');
-    } else if (l.fechaProduccion > hoy()) {
-        errores.push('La fecha de producción no puede ser futura.');
-    }
-    if (!l.turno) {
-        errores.push('Selecciona un turno.');
-    }
-    return errores;
-}
-
-function mostrarMensaje(texto, tipo, contenedor = '#divMensaje') {
-    $(contenedor)
-        .removeClass('d-none alert-success alert-danger')
-        .addClass('alert-' + tipo)
-        .text(texto);
-}
-
-function ocultarMensaje(contenedor = '#divMensaje') {
-    $(contenedor).addClass('d-none').empty();
-}
-
-function nuevo() {
-    limpiarCampos();
-    ocultarMensaje();
-    ocultarMensaje('#divMensajeModal');
-    modalLote.show();
-}
-
-function guardar() {
-    ocultarMensaje('#divMensajeModal');
-    const lote = obtenerLote();
-    const errores = validarLote(lote, Number($('#cboCliente').val()) || 0, Number($('#cboFamilia').val()) || 0);
-    if (errores.length > 0) {
-        mostrarMensaje(errores.join(' '), 'danger', '#divMensajeModal');
-        return;
-    }
-    enviarLote(lote);
-}
-
-function enviarLote(lote) {
-    $('#btnGuardar').prop('disabled', true);
-
-    $.ajax({
-        url: 'Handlers/LotesHandler.ashx?accion=guardar',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(lote),
-        dataType: 'json'
-    })
-        .done(function (r) {
-            if (!r.ok) {
-                mostrarMensaje(r.mensaje, 'danger', '#divMensajeModal');
-                return;
-            }
-            modalLote.hide();
-            mostrarMensaje(r.mensaje, 'success');
-            limpiarCampos();
-            recargarTabla();
-        })
-        .fail(function (xhr) {
-            mostrarMensaje('No se pudo comunicar con el servidor (' + xhr.status + ').', 'danger', '#divMensajeModal');
-        })
-        .always(function () {
-            $('#btnGuardar').prop('disabled', false);
-        });
-}
-
-function limpiarCampos() {
-    $('#cboCliente, #txtNumeroLote, #txtCantidad, #txtFecha, #cboTurno').val('');
-    cargarFamilias(0, 0, 0);
-    loteIdEditando = 0;
-    $('#lblTituloFormulario').text('Nuevo lote');
-}
-
-function inicializarTabla() {
-    $('#tblLotes').bootstrapTable({
-        url: urlListado(),
-        responseHandler: function (r) {
-            return r.ok ? r.datos : [];
-        },
-        classes: 'table table-striped table-hover',
-        escape: true,
-        search: true,
-        pagination: true,
-        pageSize: 10,
-        locale: 'es-MX',
-        columns: [
-            { field: 'clienteNombre', title: 'Cliente', sortable: true },
-            { field: 'familiaNombre', title: 'Familia', sortable: true },
-            { field: 'numeroParte', title: 'Número de parte', sortable: true },
-            { field: 'numeroLote', title: 'Lote', sortable: true },
-            { field: 'cantidad', title: 'Cantidad', align: 'right', sortable: true },
-            { field: 'fechaProduccion', title: 'Fecha', sortable: true, formatter: formatoFecha },
-            { field: 'turno', title: 'Turno', align: 'center', sortable: true },
-            { field: 'loteId', title: 'Acciones', align: 'right', formatter: formatoAcciones, events: eventosAcciones }
-        ]
-    });
-}
-
-function formatoFecha(valor) {
-    return valor ? new Date(valor).toLocaleDateString('es-MX') : '';
-}
-
-function formatoAcciones() {
-    return '<button type="button" class="btn btn-sm btn-outline-primary btn-editar">Editar</button> ' +
-        '<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar">Eliminar</button>';
-}
-
-const eventosAcciones = {
-    'click .btn-editar': function (e, valor, renglon) {
-        editar(renglon);
-    },
-    'click .btn-eliminar': function (e, valor, renglon) {
-        eliminar(renglon);
-    }
-};
-
-function editar(l) {
-    loteIdEditando = l.loteId;
-    $('#cboCliente').val(l.clienteId);
-    cargarFamilias(l.clienteId, l.familiaId, l.piezaId);
-    $('#txtNumeroLote').val(l.numeroLote);
-    $('#txtCantidad').val(l.cantidad);
-    $('#txtFecha').val(l.fechaProduccion.substring(0, 10));
-    $('#cboTurno').val(l.turno);
-    $('#lblTituloFormulario').text('Editar lote');
-    ocultarMensaje();
-    ocultarMensaje('#divMensajeModal');
-    modalLote.show();
-}
-
-function eliminar(l) {
-    loteAEliminar = l;
-    $('#lblConfirmar').text('¿Eliminar el lote "' + l.numeroLote + '" de la pieza ' + l.numeroParte + '?');
-    ocultarMensaje();
-    modalConfirmar.show();
-}
-
-function confirmarEliminar() {
-    modalConfirmar.hide();
-
-    $.ajax({
-        url: 'Handlers/LotesHandler.ashx?accion=eliminar',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ loteId: loteAEliminar.loteId }),
-        dataType: 'json'
-    })
-        .done(function (r) {
-            mostrarMensaje(r.mensaje, r.ok ? 'success' : 'danger');
-            if (r.ok) {
-                recargarTabla();
-            }
-        })
-        .fail(function (xhr) {
-            mostrarMensaje('No se pudo comunicar con el servidor (' + xhr.status + ').', 'danger');
-        });
-}
-```
+**Ya viene en `inicio/`:** `js/produccion.js` con la tabla, el filtro, los combos encadenados y guardar, editar y eliminar. Lo que importa para el Excel es `filtroAplicado`.
 
 | Pieza | Qué hace | Por qué |
 |---|---|---|
@@ -1078,8 +240,39 @@ function confirmarEliminar() {
 | `cargarPiezasFiltro` | Todas las piezas, para el filtro | En el filtro basta un combo; los tres niveles son del alta |
 | `hoy()` y el atributo `max` | La fecha de hoy con formato `aaaa-mm-dd` | Evita elegir una fecha futura sin escribirla a mano. Negocio la valida de todos modos |
 | `desde > hasta` como texto | Compara fechas `aaaa-mm-dd` | Ese formato ordena igual como texto que como fecha |
-| `filtroAplicado` | Los filtros con los que se pidió la tabla | El Excel coincide con lo que se ve, igual que en Piezas |
+| `filtroAplicado` | Los filtros con los que se pidió la tabla por última vez | El Excel coincide con lo que se ve, aunque hayas cambiado un control sin pulsar **Buscar** |
 | `l.fechaProduccion.substring(0, 10)` al editar | Se queda con `aaaa-mm-dd` del JSON | El JSON trae `2026-11-10T00:00:00` y el `<input type="date">` solo entiende los diez primeros caracteres |
+
+**Agregar** en `js/produccion.js`. Son dos cambios.
+
+*1. El evento, al arrancar.*
+
+Antes:
+
+```javascript
+    $('#btnLimpiarFiltro').on('click', limpiarFiltro);
+```
+
+Después:
+
+```javascript
+    $('#btnLimpiarFiltro').on('click', limpiarFiltro);
+    $('#btnExportar').on('click', exportar);
+```
+
+*2. La función, justo después de `limpiarFiltro`.*
+
+```javascript
+// Descarga el Excel con los mismos filtros que tiene la tabla
+function exportar() {
+    window.location = 'Handlers/LotesHandler.ashx?accion=exportar' + filtroAplicado;
+}
+```
+
+| Pieza | Qué hace | Por qué |
+|---|---|---|
+| `window.location = …` | Le dice al **navegador** que vaya al handler | Un archivo no se pide con `$.ajax`: queremos que el navegador lo reciba y lo guarde. Como la respuesta trae `attachment`, descarga y la página se queda donde está |
+| `+ filtroAplicado` | Agrega `&piezaId=…&desde=…&hasta=…` | Son los mismos filtros con los que se pidió la tabla; el handler los lee igual que en `listar` |
 
 ## 6. Probar
 
@@ -1090,12 +283,21 @@ function confirmarEliminar() {
 5. **Editar**: cliente, familia y pieza quedan seleccionados. Cambia la cantidad y guarda.
 6. **Eliminar** → confirmar: desaparece.
 7. **Filtro**: por pieza; por rango de fechas; con «desde» posterior a «hasta» avisa.
-8. **Exportar a Excel**: con y sin filtro. Revisa los acentos y la columna de fecha.
+8. **Exportar a Excel** sin filtro: baja `Lotes_….xlsx` y la página no cambia. En Excel debe haber una fila por lote activo, con los acentos bien y **Fecha de producción** como fecha.
+9. **Exportar a Excel** con filtro: filtra por pieza o por fechas, pulsa **Buscar** y exporta. El Excel trae las mismas filas que la tabla.
+10. Elimina un lote y exporta otra vez: ya no aparece.
 
 Si algo falla:
 
 | Si pasa esto | Revisa |
 |---|---|
+| Visual Studio no reconoce `XLWorkbook` | El `using ClosedXML.Excel;` y que ClosedXML esté en `packages.config` (sección «Antes de empezar») |
+| «No se puede cargar el archivo o ensamblado» al ejecutar | Los `bindingRedirect` en `Web.config`; reinstala el paquete si faltan |
+| Excel no abre el archivo o se queja | Que `exportar` termine con `return;` y no con `break;` |
+| Baja como `.ashx` o se muestra como texto | El `Content-Disposition` y el `ContentType` |
+| Variable repetida en el `switch` | `archivo` solo se declara en el `case "exportar"` |
+| El botón no hace nada | Que `#btnExportar` esté enlazado en el arranque, y F12 → Console |
+| El Excel trae más filas que la tabla | Que la función `exportar` agregue `filtroAplicado` a la URL |
 | El combo de pieza no se llena | Que la URL sea `PiezasHandler.ashx?accion=listar&familiaId=…` (F12 → Network) y que esa familia tenga piezas activas |
 | Al editar, la pieza no queda seleccionada | Que `editar` llame `cargarFamilias(l.clienteId, l.familiaId, l.piezaId)` con los tres valores |
 | La fecha aparece vacía al editar | Que se recorte con `substring(0, 10)` |
